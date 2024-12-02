@@ -1,23 +1,34 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
-// Example structure for received data
+// Data structure to receive
 typedef struct {
   char message[32];
-} StatusMessage;
+} Message;
 
-StatusMessage receivedMessage;
+Message incomingData;
 
-void onDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
-  memcpy(&receivedMessage, incomingData, sizeof(receivedMessage));
-  Serial.println(receivedMessage.message); // Forward to Raspberry Pi
+// Callback function for ESP-NOW
+void onDataRecv(const esp_now_recv_info_t *recv_info, const uint8_t *incomingData, int len) {
+  memcpy(&incomingData, incomingData, len);
+
+  // Forward the received message and MAC address to the Raspberry Pi via Serial
+  Serial.print("Sender MAC: ");
+  for (int i = 0; i < 6; i++) {
+    Serial.print(recv_info->src_addr[i], HEX);
+    if (i < 5) Serial.print(":");
+  }
+  Serial.print("\nMessage: ");
+  Serial.println((char *)incomingData);
 }
 
 void setup() {
-  Serial.begin(115200); // Serial communication with Raspberry Pi
+  Serial.begin(115200); // Open serial communication with Raspberry Pi
 
-  // Initialize Wi-Fi in station mode
+  // Initialize Wi-Fi
   WiFi.mode(WIFI_STA);
+
+  // Initialize ESP-NOW
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
     return;
@@ -25,8 +36,10 @@ void setup() {
 
   // Register the receive callback
   esp_now_register_recv_cb(onDataRecv);
+
+  Serial.println("Main ESP ready to forward messages.");
 }
 
 void loop() {
-  // Nothing to do here; all data handling happens in the callback
+  // Main ESP continuously forwards messages to the Raspberry Pi
 }

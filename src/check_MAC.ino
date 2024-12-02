@@ -1,7 +1,17 @@
-#include <WiFi.h>
+#include <WiFi.h> // Include the Wi-Fi library
+
 void setup() {
   Serial.begin(115200);
-  WiFi.mode(WIFI_STA);
+  
+  // Initialize Wi-Fi
+  WiFi.mode(WIFI_STA); // Set Wi-Fi to station mode
+  delay(100);          // Small delay for Wi-Fi initialization
+  
+  // Get and print the MAC address
+  Serial.print("MAC Address: ");
   Serial.println(WiFi.macAddress());
 }
-void loop() {}
+
+void loop() {
+  // Do nothing
+}
