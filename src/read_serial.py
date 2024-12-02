@@ -1,7 +1,7 @@
 import serial
 
 # Open the serial port
-ser = serial.Serial('/dev/serial0', 115200, timeout=1)  # Replace with your correct port (e.g., '/dev/ttyUSB0')
+ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)  # Replace with your correct port (e.g., '/dev/ttyUSB0')
 
 print("Listening for messages from Main ESP...")
 
