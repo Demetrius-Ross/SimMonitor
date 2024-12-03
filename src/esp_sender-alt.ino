@@ -2,7 +2,7 @@
 #include <WiFi.h>
 
 // Receiver ESP MAC Address
-uint8_t receiverMAC[] = {0x78, 0xE3, 0x6D, 0xDF, 0x69, 0x7C}; //  main ESP MAC address
+uint8_t receiverMAC[] = {0x78, 0xE3, 0x6D, 0xDF, 0x69, 0x7C}; // Main ESP MAC address
 
 // Data structure to send
 typedef struct {
@@ -41,11 +41,22 @@ void setup() {
     Serial.println("Failed to add peer");
     return;
   }
+
+  Serial.println("Sender ESP ready to send messages.");
 }
 
 void loop() {
   // Prepare and send data
   strcpy(myData.message, "Hello ESP-NOW!");
+
+  // Log the message being sent
+  Serial.print("Message to send: ");
+  Serial.println(myData.message);
+
+  // Log the size of the data being sent
+  Serial.print("Size of data being sent: ");
+  Serial.println(sizeof(myData));
+
   esp_err_t result = esp_now_send(receiverMAC, (uint8_t *)&myData, sizeof(myData));
 
   if (result == ESP_OK) {
