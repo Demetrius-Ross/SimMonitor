@@ -22,16 +22,16 @@ class Simulator:
             self.canvas.delete(element)
         self.elements.clear()
 
-        # Add padding values
+        # Constants for layout
         padding_x = 40  # Horizontal padding
-        padding_y = 20  # Horizontal padding
+        padding_y = 20  # Vertical padding
         title_offset = 50
         image_offset = 210
         motion_status_offset = 340 + padding_y
         ramp_status_offset = 380 + padding_y
         status_offset = 420 + padding_y
 
-        # Draw Simulator Name (Centered Above the Image)
+        # Draw Simulator Name
         self.elements.append(
             self.canvas.create_text(
                 self.x + 120 + padding_x, self.y + title_offset,
@@ -43,9 +43,19 @@ class Simulator:
         )
 
         # Determine motion image
-        motion_image = self.images["motion_on"] if self.motion_state else self.images["motion_off"]
+        if self.motion_state == 2:  # Sim in motion (up)
+            motion_image_key = "motion_up"
+        else:  # Sim at home (down)
+            motion_image_key = "motion_down"
 
-        # Draw Motion Image (Centered)
+        print(f"Motion State: {self.motion_state}, Image Key: {motion_image_key}")
+
+        motion_image = self.images.get(motion_image_key, None)
+        if not motion_image:
+            print(f"Warning: Image for '{motion_image_key}' not found.")
+            return
+
+        # Draw Motion Image
         self.elements.append(
             self.canvas.create_image(
                 self.x + 120 + padding_x, self.y + image_offset,
@@ -54,53 +64,21 @@ class Simulator:
             )
         )
 
-        # Draw Motion Status Label and Indicator
-        motion_text_x = self.x + 165 + padding_x
-        motion_circle_x = self.x + 185 + padding_x
-        self.elements.append(
-            self.canvas.create_text(
-                motion_text_x, self.y + motion_status_offset,
-                text="Motion Status:",
-                font=("Helvetica", 14),
-                fill="black",
-                anchor="e"
-            )
-        )
-        motion_color = "red" if self.motion_state == 1 else "green"
-        self.elements.append(
-            self.canvas.create_oval(
-                motion_circle_x - 10, self.y + motion_status_offset - 10,
-                motion_circle_x + 10, self.y + motion_status_offset + 10,
-                fill=motion_color,
-                outline="black",
-                width=2
-            )
+        # Draw Motion Status
+        motion_color = "green" if self.motion_state == 1 else "red"  # 1: Home, 0: In Motion
+        self._draw_status_label_and_indicator(
+            "Motion Status:", motion_color, self.x + 165 + padding_x, self.y + motion_status_offset
         )
 
-        # Draw Ramp Status Label and Indicator
-        ramp_text_x = self.x + 165 + padding_x
-        ramp_circle_x = self.x + 185 + padding_x
-        self.elements.append(
-            self.canvas.create_text(
-                ramp_text_x, self.y + ramp_status_offset,
-                text="Ramp Status:",
-                font=("Helvetica", 14),
-                fill="black",
-                anchor="e"
-            )
-        )
-        ramp_color = "green" if self.ramp_state == 0 else "red"
-        self.elements.append(
-            self.canvas.create_oval(
-                ramp_circle_x - 10, self.y + ramp_status_offset - 10,
-                ramp_circle_x + 10, self.y + ramp_status_offset + 10,
-                fill=ramp_color,
-                outline="black",
-                width=2
-            )
+        # Draw Ramp Status
+        ramp_color = (
+            "green" if self.ramp_state == 2 else "red" if self.ramp_state == 1 else "orange"
+        )  # 2: Down, 1: Up, 0: In Motion
+        self._draw_status_label_and_indicator(
+            "Ramp Status:", ramp_color, self.x + 165 + padding_x, self.y + ramp_status_offset
         )
 
-        # Draw Status Text (Centered Below the Ramp Indicator)
+        # Draw Connection Status
         self.elements.append(
             self.canvas.create_text(
                 self.x + 120 + padding_x, self.y + status_offset,
@@ -108,5 +86,55 @@ class Simulator:
                 font=("Helvetica", 14),
                 fill="black",
                 anchor="center"
+            )
+        )
+
+    def _draw_status_label_and_indicator(self, label, color, text_x, indicator_y):
+        """Helper to draw status labels and indicators."""
+        circle_x = text_x + 20  # Space between text and indicator
+        # Draw label
+        self.elements.append(
+            self.canvas.create_text(
+                text_x, indicator_y,
+                text=label,
+                font=("Helvetica", 14),
+                fill="black",
+                anchor="e"
+            )
+        )
+        # Draw indicator
+        self.elements.append(
+            self.canvas.create_oval(
+                circle_x - 10, indicator_y - 10,
+                circle_x + 10, indicator_y + 10,
+                fill=color,
+                outline="black",
+                width=2
+            )
+        )
+
+
+
+    def _draw_status_label_and_indicator(self, label, color, text_x, indicator_y):
+        """Helper to draw status labels and indicators."""
+        circle_x = text_x + 20  # Space between text and indicator
+        # Draw label
+        self.elements.append(
+            self.canvas.create_text(
+                text_x, indicator_y,
+                text=label,
+                font=("Helvetica", 14),
+                fill="black",
+                anchor="e"
+            )
+        )
+        # Draw indicator
+        self.elements.append(
+            self.canvas.create_oval(
+                circle_x - 10, indicator_y - 10,
+                circle_x + 10, indicator_y + 10,
+                fill=color,
+                outline="black",
+                width=2
             )
         )

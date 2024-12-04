@@ -4,8 +4,8 @@
 // Data structure to receive
 typedef struct {
   char simName[10]; // Simulator name
-  int rampState;    // 0: Down, 1: Up
-  int motionState;  // 0: Down, 1: Up
+  int rampState;    // 0: In motion, 1: Ramp Up, 2: Ramp Down
+  int motionState;  // 1: Sim Down (Home), 2: Sim Up
   int status;       // 0: No Data, 1: Connected
 } Message;
 
@@ -27,12 +27,21 @@ void onDataRecv(const esp_now_recv_info_t *recv_info, const uint8_t *incomingDat
   Serial.print("Simulator Name: ");
   Serial.println(receivedData->simName);
 
+  // Handle ramp state
   Serial.print("Ramp State: ");
-  Serial.println(receivedData->rampState == 1 ? "Up" : "Down");
+  if (receivedData->rampState == 1) {
+    Serial.println("Ramp Up");
+  } else if (receivedData->rampState == 2) {
+    Serial.println("Ramp Down");
+  } else {
+    Serial.println("In Motion");
+  }
 
+  // Handle motion state
   Serial.print("Motion State: ");
-  Serial.println(receivedData->motionState == 1 ? "Up" : "Down");
+  Serial.println(receivedData->motionState == 1 ? "Sim Down (Home)" : "Sim Up");
 
+  // Handle connection status
   Serial.print("Status: ");
   Serial.println(receivedData->status == 1 ? "Connected" : "No Data");
 

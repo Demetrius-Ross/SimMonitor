@@ -1,7 +1,7 @@
-import tkinter as tk
 from simulator import Simulator
 from utils.image_loader import load_images
 from utils.serial_handler import update_simulators
+import tkinter as tk
 
 # Initialize Tkinter
 root = tk.Tk()
@@ -37,8 +37,24 @@ def key_pressed(event):
 
 root.bind("<KeyPress>", key_pressed)
 
+# Different update intervals
+DEBUG_DELAY = 2000  # Delay in milliseconds for debug mode
+SERIAL_DELAY = 1000  # Delay in milliseconds for serial mode
+
 # Start Simulator Updates
-update_simulators(root, simulators)
+def update_simulators_wrapper():
+    """
+    Wrapper function to continuously update simulators using serial data.
+    This function is non-blocking and uses Tkinter's `after` method.
+    """
+    from utils.serial_handler import DEBUG_MODE  # Import the debug flag from serial_handler
+
+    update_simulators(root, simulators)
+    delay = DEBUG_DELAY if DEBUG_MODE else SERIAL_DELAY  # Use different delays
+    root.after(delay, update_simulators_wrapper)  # Schedule the next update
+
+# Start the update loop
+update_simulators_wrapper()
 
 # Run the Main Loop
 root.mainloop()

@@ -6,10 +6,10 @@ uint8_t receiverMAC[] = {0x78, 0xE3, 0x6D, 0xDF, 0x69, 0x7C}; // Main ESP MAC ad
 
 // Data structure to send
 typedef struct {
-  char simName[10]; // Simulator name
-  int rampState;    // 0: Down, 1: Up
-  int motionState;  // 0: Down, 1: Up
-  int status;       // 0: No Data, 1: Connected
+  char simName[10];    // Name of the simulator
+  int rampState;       // 0: in motion, 1: ramp up, 2: ramp down
+  int motionState;     // 1: sim down (home), 2: sim up
+  int status;          // 1: Connected, 0: No Data
 } Message;
 
 Message myData;
@@ -17,8 +17,7 @@ Message myData;
 // Pin definitions for LEDs
 #define RAMP_UP_PIN 14
 #define RAMP_DOWN_PIN 27
-#define SIM_UP_PIN 26
-#define SIM_DOWN_PIN 25
+#define SIM_HOME_PIN 26
 
 void onSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("Last Packet Send Status: ");
@@ -31,8 +30,7 @@ void setup() {
   // Initialize GPIO pins
   pinMode(RAMP_UP_PIN, INPUT);
   pinMode(RAMP_DOWN_PIN, INPUT);
-  pinMode(SIM_UP_PIN, INPUT);
-  pinMode(SIM_DOWN_PIN, INPUT);
+  pinMode(SIM_HOME_PIN, INPUT);
 
   // Set the simulator name
   strcpy(myData.simName, "PC-12");
@@ -64,25 +62,33 @@ void setup() {
 }
 
 void loop() {
-  // Determine the ramp and motion states
+  // Determine the ramp state
   int rampUp = digitalRead(RAMP_UP_PIN);
   int rampDown = digitalRead(RAMP_DOWN_PIN);
-  int simUp = digitalRead(SIM_UP_PIN);
-  int simDown = digitalRead(SIM_DOWN_PIN);
 
-  // Assign states based on input
-  myData.rampState = (rampUp == HIGH) ? 1 : 0;       // Ramp Up: 1, Ramp Down: 0
-  myData.motionState = (simUp == HIGH) ? 1 : 0;     // Sim Up: 1, Sim Down: 0
-  myData.status = (rampUp || rampDown || simUp || simDown) ? 1 : 0; // Connected if any LED is HIGH
+  if (rampUp == HIGH && rampDown == LOW) {
+    myData.rampState = 1; // Ramp is up
+  } else if (rampUp == LOW && rampDown == HIGH) {
+    myData.rampState = 2; // Ramp is down
+  } else {
+    myData.rampState = 0; // Ramp is in motion
+  }
+
+  // Determine the motion state
+  int simHome = digitalRead(SIM_HOME_PIN);
+  myData.motionState = (simHome == HIGH) ? 1 : 2; // 1: Sim is down, 2: Sim is up
+
+  // Update the connection status
+  myData.status = 1; // Always set to connected if the data is being sent
 
   // Log the data to be sent
   Serial.print("Sending Data: ");
   Serial.print(myData.simName);
-  Serial.print(", ");
+  Serial.print(", Ramp State: ");
   Serial.print(myData.rampState);
-  Serial.print(", ");
+  Serial.print(", Motion State: ");
   Serial.print(myData.motionState);
-  Serial.print(", ");
+  Serial.print(", Status: ");
   Serial.println(myData.status);
 
   // Send the data

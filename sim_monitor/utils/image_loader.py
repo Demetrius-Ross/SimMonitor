@@ -2,8 +2,8 @@ from PIL import Image, ImageTk
 
 def load_images():
     image_paths = {
-        "motion_on": "assets/simup.jpg",
-        "motion_off": "assets/simdown.jpg"
+        "motion_up": "assets/simup.jpg",
+        "motion_down": "assets/simdown.jpg"
     }
 
     images = {}
