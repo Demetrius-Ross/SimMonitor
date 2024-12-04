@@ -3,7 +3,10 @@
 
 // Data structure to receive
 typedef struct {
-  int ledStatus[4]; // Store the status of the 4 LEDs
+  char simName[10]; // Simulator name
+  int rampState;    // 0: Down, 1: Up
+  int motionState;  // 0: Down, 1: Up
+  int status;       // 0: No Data, 1: Connected
 } Message;
 
 Message incomingData;
@@ -19,21 +22,28 @@ void onDataRecv(const esp_now_recv_info_t *recv_info, const uint8_t *incomingDat
   // Cast the incoming data to our structure
   const Message *receivedData = (const Message *)incomingData;
 
-  // Log the received LED statuses
-  Serial.print("Received LED Statuses: ");
-  for (int i = 0; i < 4; i++) {
-    Serial.print(receivedData->ledStatus[i]);
-    Serial.print(" ");
-  }
-  Serial.println();
+  // Log the received data
+  Serial.println("Received Data:");
+  Serial.print("Simulator Name: ");
+  Serial.println(receivedData->simName);
 
-  // Forward the data to the Raspberry Pi
-  for (int i = 0; i < 4; i++) {
-    Serial.print("LED");
-    Serial.print(i + 1);
-    Serial.print(": ");
-    Serial.println(receivedData->ledStatus[i]);
-  }
+  Serial.print("Ramp State: ");
+  Serial.println(receivedData->rampState == 1 ? "Up" : "Down");
+
+  Serial.print("Motion State: ");
+  Serial.println(receivedData->motionState == 1 ? "Up" : "Down");
+
+  Serial.print("Status: ");
+  Serial.println(receivedData->status == 1 ? "Connected" : "No Data");
+
+  // Forward the data to the Raspberry Pi via Serial
+  Serial.print(receivedData->simName);
+  Serial.print(",");
+  Serial.print(receivedData->rampState);
+  Serial.print(",");
+  Serial.print(receivedData->motionState);
+  Serial.print(",");
+  Serial.println(receivedData->status);
 }
 
 void setup() {

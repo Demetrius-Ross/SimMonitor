@@ -1,47 +1,43 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
-// Data structure to receive
+// Receiver ESP MAC Address
+uint8_t receiverMAC[] = {0x78, 0xE3, 0x6D, 0xDF, 0x69, 0x7C}; // Main ESP MAC address
+
+// Data structure to send
 typedef struct {
-  char message[32]; // Buffer for up to 31 characters + null terminator
+  char simName[10]; // Simulator name
+  int rampState;    // 0: Down, 1: Up
+  int motionState;  // 0: Down, 1: Up
+  int status;       // 0: No Data, 1: Connected
 } Message;
 
-Message incomingData;
+Message myData;
 
-// Callback function for ESP-NOW
-void onDataRecv(const esp_now_recv_info_t *recv_info, const uint8_t *incomingData, int len) {
+// Pin definitions for LEDs
+#define RAMP_UP_PIN 14
+#define RAMP_DOWN_PIN 27
+#define SIM_UP_PIN 26
+#define SIM_DOWN_PIN 25
 
-  // Check for valid data length
-  if (len > sizeof(Message)) { // Compare to the size of the Message structure
-    Serial.println("Error: Received data too long!");
-    return; // Prevent buffer overflow
-  }
-
-  // Use a buffer large enough to handle the received data
-  char receivedMessage[sizeof(Message)] = {0}; // Dynamically allocate based on structure size
-  memcpy(receivedMessage, incomingData, len);
-  receivedMessage[len] = '\0'; // Null-terminate the string
-
-  // Log the received MAC address
-  Serial.print("Sender MAC: ");
-  for (int i = 0; i < 6; i++) {
-    Serial.print(recv_info->src_addr[i], HEX);
-    if (i < 5) Serial.print(":");
-  }
-  Serial.println();
-
-  // Log the actual message received
-  Serial.print("Message received: ");
-  Serial.println(receivedMessage);
-
-  // Forward the data to the Raspberry Pi
-  Serial.println(receivedMessage); // Send the received message directly
+void onSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("Last Packet Send Status: ");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Success" : "Fail");
 }
 
 void setup() {
-  Serial.begin(115200); // Open serial communication with Raspberry Pi
+  Serial.begin(115200);
 
-  // Initialize Wi-Fi in station mode
+  // Initialize GPIO pins
+  pinMode(RAMP_UP_PIN, INPUT);
+  pinMode(RAMP_DOWN_PIN, INPUT);
+  pinMode(SIM_UP_PIN, INPUT);
+  pinMode(SIM_DOWN_PIN, INPUT);
+
+  // Set the simulator name
+  strcpy(myData.simName, "PC-12");
+
+  // Initialize Wi-Fi
   WiFi.mode(WIFI_STA);
 
   // Initialize ESP-NOW
@@ -50,12 +46,53 @@ void setup() {
     return;
   }
 
-  // Register the receive callback
-  esp_now_register_recv_cb(onDataRecv);
+  // Register send callback
+  esp_now_register_send_cb(onSent);
 
-  Serial.println("Main ESP ready to forward messages.");
+  // Register peer
+  esp_now_peer_info_t peerInfo;
+  memcpy(peerInfo.peer_addr, receiverMAC, 6);
+  peerInfo.channel = 0; // Default channel
+  peerInfo.encrypt = false;
+
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    Serial.println("Failed to add peer");
+    return;
+  }
+
+  Serial.println("Sender ESP ready to send messages.");
 }
 
 void loop() {
-  // Nothing to do in the main loop, data is handled in the callback
+  // Determine the ramp and motion states
+  int rampUp = digitalRead(RAMP_UP_PIN);
+  int rampDown = digitalRead(RAMP_DOWN_PIN);
+  int simUp = digitalRead(SIM_UP_PIN);
+  int simDown = digitalRead(SIM_DOWN_PIN);
+
+  // Assign states based on input
+  myData.rampState = (rampUp == HIGH) ? 1 : 0;       // Ramp Up: 1, Ramp Down: 0
+  myData.motionState = (simUp == HIGH) ? 1 : 0;     // Sim Up: 1, Sim Down: 0
+  myData.status = (rampUp || rampDown || simUp || simDown) ? 1 : 0; // Connected if any LED is HIGH
+
+  // Log the data to be sent
+  Serial.print("Sending Data: ");
+  Serial.print(myData.simName);
+  Serial.print(", ");
+  Serial.print(myData.rampState);
+  Serial.print(", ");
+  Serial.print(myData.motionState);
+  Serial.print(", ");
+  Serial.println(myData.status);
+
+  // Send the data
+  esp_err_t result = esp_now_send(receiverMAC, (uint8_t *)&myData, sizeof(myData));
+
+  if (result == ESP_OK) {
+    Serial.println("Message sent successfully");
+  } else {
+    Serial.println("Failed to send message");
+  }
+
+  delay(2000); // Send data every 2 seconds
 }
