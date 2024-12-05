@@ -39,7 +39,7 @@ root.bind("<KeyPress>", key_pressed)
 
 # Different update intervals
 DEBUG_DELAY = 2000  # Delay in milliseconds for debug mode
-SERIAL_DELAY = 1000  # Delay in milliseconds for serial mode
+SERIAL_DELAY = 100  # Delay in milliseconds for serial mode
 
 # Start Simulator Updates
 def update_simulators_wrapper():
