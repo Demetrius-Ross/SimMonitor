@@ -1,27 +1,26 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
-// Receiver ESP MAC Address
-uint8_t receiverMAC[] = {0x78, 0xE3, 0x6D, 0xDF, 0x69, 0x7C}; // Main ESP MAC address
+// Receiver ESP MAC Address (replace with your main ESP's MAC address)
+uint8_t receiverMAC[] = {0x78, 0xE3, 0x6D, 0xDF, 0x69, 0x7C};
 
 // Data structure to send
 typedef struct {
-  char simName[10];    // Name of the simulator
-  int rampState;       // 0: in motion, 1: ramp up, 2: ramp down
-  int motionState;     // 1: sim down (home), 2: sim up
-  int status;          // 1: Connected, 0: No Data
+  char simName[10]; // Simulator name
+  int rampState;    // 0: In Motion, 1: Ramp Up, 2: Ramp Down
+  int motionState;  // 1: Sim Down (Home), 2: Sim Up
+  int status;       // 1: Connected, 0: No Data
 } Message;
 
 Message myData;
 
 // Pin definitions for LEDs
-#define RAMP_UP_PIN 14
-#define RAMP_DOWN_PIN 27
-#define SIM_HOME_PIN 26
+#define RAMP_UP_PIN 14     // Ramp Up
+#define RAMP_DOWN_PIN 27   // Ramp Down
+#define SIM_HOME_PIN 26    // Sim at Home
 
 void onSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  Serial.print("Last Packet Send Status: ");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Success" : "Fail");
+  // Send callback, no extra logging to keep things clean
 }
 
 void setup() {
@@ -32,7 +31,7 @@ void setup() {
   pinMode(RAMP_DOWN_PIN, INPUT);
   pinMode(SIM_HOME_PIN, INPUT);
 
-  // Set the simulator name
+  // Set simulator name
   strcpy(myData.simName, "PC-12");
 
   // Initialize Wi-Fi
@@ -62,43 +61,30 @@ void setup() {
 }
 
 void loop() {
-  // Determine the ramp state
+  // Read states from the input pins
   int rampUp = digitalRead(RAMP_UP_PIN);
   int rampDown = digitalRead(RAMP_DOWN_PIN);
-
-  if (rampUp == HIGH && rampDown == LOW) {
-    myData.rampState = 1; // Ramp is up
-  } else if (rampUp == LOW && rampDown == HIGH) {
-    myData.rampState = 2; // Ramp is down
-  } else {
-    myData.rampState = 0; // Ramp is in motion
-  }
-
-  // Determine the motion state
   int simHome = digitalRead(SIM_HOME_PIN);
-  myData.motionState = (simHome == HIGH) ? 1 : 2; // 1: Sim is down, 2: Sim is up
 
-  // Update the connection status
-  myData.status = 1; // Always set to connected if the data is being sent
-
-  // Log the data to be sent
-  Serial.print("Sending Data: ");
-  Serial.print(myData.simName);
-  Serial.print(", Ramp State: ");
-  Serial.print(myData.rampState);
-  Serial.print(", Motion State: ");
-  Serial.print(myData.motionState);
-  Serial.print(", Status: ");
-  Serial.println(myData.status);
-
-  // Send the data
-  esp_err_t result = esp_now_send(receiverMAC, (uint8_t *)&myData, sizeof(myData));
-
-  if (result == ESP_OK) {
-    Serial.println("Message sent successfully");
+  // Determine ramp state
+  if (rampUp == HIGH && rampDown == HIGH) {
+    myData.rampState = 0; // In Motion
+  } else if (rampUp == HIGH) {
+    myData.rampState = 1; // Ramp Up
+  } else if (rampDown == HIGH) {
+    myData.rampState = 2; // Ramp Down
   } else {
-    Serial.println("Failed to send message");
+    myData.rampState = 0; // Default to "In Motion" if no valid state is detected
   }
+
+  // Determine motion state
+  myData.motionState = (simHome == HIGH) ? 1 : 2; // 1: Sim Down (Home), 2: Sim Up
+
+  // Determine status
+  myData.status = (rampUp || rampDown || simHome) ? 1 : 0; // 1: Connected, 0: No Data
+
+  // Send data via ESP-NOW
+  esp_err_t result = esp_now_send(receiverMAC, (uint8_t *)&myData, sizeof(myData));
 
   delay(2000); // Send data every 2 seconds
 }
