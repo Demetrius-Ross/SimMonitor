@@ -69,16 +69,16 @@ void loop() {
   // Determine ramp state
   if (rampUp == HIGH && rampDown == HIGH) {
     myData.rampState = 0; // In Motion
-  } else if (rampUp == HIGH) {
+  } else if (rampUp == LOW) {
     myData.rampState = 1; // Ramp Up
-  } else if (rampDown == HIGH) {
+  } else if (rampDown == LOW) {
     myData.rampState = 2; // Ramp Down
   } else {
     myData.rampState = 0; // Default to "In Motion" if no valid state is detected
   }
 
   // Determine motion state
-  myData.motionState = (simHome == HIGH) ? 1 : 2; // 1: Sim Down (Home), 2: Sim Up
+  myData.motionState = (simHome == LOW) ? 1 : 2; // 1: Sim Down (Home), 2: Sim Up
 
   // Determine status
   myData.status = (rampUp || rampDown || simHome) ? 1 : 0; // 1: Connected, 0: No Data
