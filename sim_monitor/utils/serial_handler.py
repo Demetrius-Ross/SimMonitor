@@ -40,6 +40,7 @@ def update_simulators(root, simulators, serial_port='/dev/ttyUSB0', baud_rate=11
                         print(f"Invalid data format: {data}")  # Log invalid data format
                 else:
                     time.sleep(0.1)  # Small delay to prevent busy-waiting
+                    pass
         except Exception as e:
             print(f"Serial communication error: {e}")
 

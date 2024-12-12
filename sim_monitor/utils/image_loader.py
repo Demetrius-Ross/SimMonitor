@@ -9,7 +9,7 @@ def load_images():
     images = {}
     for key, path in image_paths.items():
         try:
-            img = Image.open(path).resize((240, 240))  # 1:1 aspect ratio
+            img = Image.open(path).resize((320, 320))  # 1:1 aspect ratio
             images[key] = ImageTk.PhotoImage(img)
         except Exception as e:
             print(f"Failed to load {path}: {e}")

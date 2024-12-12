@@ -9,12 +9,15 @@ root.title("Sim Monitor v1")
 root.attributes("-fullscreen", True)
 
 # Canvas for GUI
-canvas = tk.Canvas(root, width=1920, height=1080, bg="white")
-canvas.pack()
+# canvas = tk.Canvas(root, width=1920, height=1080, bg="white")
+
+#canvas.pack()
 
 # Screen Resolution
 screenx = root.winfo_screenwidth()
 screeny = root.winfo_screenheight()
+canvas = tk.Canvas(root, width=screenx, height=screeny, bg="white")
+canvas.pack()
 pixelratiox = screenx / 6
 pixelratioy = screeny / 2
 
@@ -39,7 +42,7 @@ root.bind("<KeyPress>", key_pressed)
 
 # Different update intervals
 DEBUG_DELAY = 2000  # Delay in milliseconds for debug mode
-SERIAL_DELAY = 100  # Delay in milliseconds for serial mode
+SERIAL_DELAY = 2000  # Delay in milliseconds for serial mode
 
 # Start Simulator Updates
 def update_simulators_wrapper():
