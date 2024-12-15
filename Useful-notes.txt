@@ -2,30 +2,6 @@ ls /dev/ttyUSB*
 
 minicom -b 115200 -o -D /dev/ttyUSB0
 
-
-
-Connect the Main ESP to the Raspberry Pi using the following wiring:
-
-    TX of Main ESP → RX of Raspberry Pi (GPIO15).
-    RX of Main ESP → TX of Raspberry Pi (GPIO14).
-    GND → GND.
-
-
-Use EPS Now
-
-
-sudo apt install -y nodejs npm
-sudo npm install -g --unsafe-perm node-red
-
-node-red
-
-Access the Node-RED dashboard in your browser:
-
-    URL: http://<raspberry-pi-IP>:1880
-    Create a dashboard that visualizes the incoming data.
-
-
-
 Updated Project Structure
 
     ESP-NOW Mesh Network:
