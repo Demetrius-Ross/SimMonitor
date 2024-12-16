@@ -179,8 +179,7 @@ void loop() {
     // Send data via ESP-NOW
     esp_err_t result = esp_now_send(receiverMAC, (uint8_t *)&myData, sizeof(myData));
     if (result == ESP_OK) {
-      Serial.printf("Data sent: RampState=%d, MotionState=%d, Status=%d\n",
-                    myData.rampState, myData.motionState, myData.status);
+      Serial.printf("Data sent: %s,%d,%d,%d\n", myData.simName, myData.rampState, myData.motionState, myData.status);
     } else {
       Serial.println("Error sending data.");
     }
