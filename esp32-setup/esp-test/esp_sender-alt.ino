@@ -182,6 +182,7 @@ void loop() {
       Serial.printf("Data sent: %s,%d,%d,%d\n", myData.simName, myData.rampState, myData.motionState, myData.status);
     } else {
       Serial.println("Error sending data.");
+      Serial.flush();
     }
 
     // Update the previous state
