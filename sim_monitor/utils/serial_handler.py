@@ -25,22 +25,29 @@ def update_simulators(root, simulators, serial_port='/dev/ttyUSB0', baud_rate=11
                     # Parse the data (Expected format: "sim_name,ramp_state,motion_state,status")
                     parts = data.split(",")
                     if len(parts) == 4:
-                        sim_name, ramp_state, motion_state, status = parts
-                        ramp_state = int(ramp_state)
-                        motion_state = int(motion_state)
-                        status = int(status)
+                        sim_name = parts[0]
+                        try:
+                            # Safely attempt integer conversion
+                            ramp_state = int(parts[1]) if parts[1].isdigit() else None
+                            motion_state = int(parts[2]) if parts[2].isdigit() else None
+                            status = int(parts[3]) if parts[3].isdigit() else None
 
-                        # Update the simulator state that matches the received name
-                        for sim in simulators:
-                            if sim.name == sim_name:
-                                # Use `root.after` to safely update the GUI
-                                root.after(0, sim.update_state, ramp_state, motion_state, status)
-                                break
+                            # Check for valid parsed integers
+                            if None in (ramp_state, motion_state, status):
+                                raise ValueError("Non-numeric value encountered")
+
+                            # Update the simulator state that matches the received name
+                            for sim in simulators:
+                                if sim.name == sim_name:
+                                    # Use `root.after` to safely update the GUI
+                                    root.after(0, sim.update_state, ramp_state, motion_state, status)
+                                    break
+                        except ValueError as e:
+                            print(f"Error parsing data: {data} -> {e}")
                     else:
                         print(f"Invalid data format: {data}")  # Log invalid data format
                 else:
                     time.sleep(0.1)  # Small delay to prevent busy-waiting
-                    pass
         except Exception as e:
             print(f"Serial communication error: {e}")
 
