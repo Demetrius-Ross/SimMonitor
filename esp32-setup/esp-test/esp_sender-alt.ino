@@ -180,9 +180,10 @@ void loop() {
     esp_err_t result = esp_now_send(receiverMAC, (uint8_t *)&myData, sizeof(myData));
     if (result == ESP_OK) {
       Serial.printf("Data sent: %s,%d,%d,%d\n", myData.simName, myData.rampState, myData.motionState, myData.status);
+      Serial.flush();
     } else {
       Serial.println("Error sending data.");
-      Serial.flush();
+      
     }
 
     // Update the previous state

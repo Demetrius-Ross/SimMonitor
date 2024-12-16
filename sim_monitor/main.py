@@ -26,7 +26,9 @@ images = load_images()
 
 # Create Simulators
 simulators = [
-    Simulator("PC-12", pixelratiox * 0, pixelratioy * 0, canvas, images)
+    Simulator("PC-12", pixelratiox * 0, pixelratioy * 0, canvas, images),
+    Simulator("ERJ-24", pixelratiox * 1, pixelratioy * 0, canvas, images),
+    Simulator("EC-130", pixelratiox * 2, pixelratioy * 0, canvas, images)
 ]
 
 # Key Bindings
