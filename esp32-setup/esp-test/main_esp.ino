@@ -124,9 +124,10 @@ void loop() {
 
     if (command.startsWith("OTA:")) {
       // Parse the target label from the command
-      String targetLabel = command.substring(4).trim();
-      strncpy(otaCommand.targetLabel, targetLabel.c_str(), sizeof(otaCommand.targetLabel));
+      String targetLabel = command.substring(4); // Extract substring from index 4
+      targetLabel.trim();                        // Trim whitespace in-place
 
+      strncpy(otaCommand.targetLabel, targetLabel.c_str(), sizeof(otaCommand.targetLabel));
       otaCommand.otaStart = true; // Indicate OTA start
       otaCommand.chunkSize = 0;   // No firmware data yet
 

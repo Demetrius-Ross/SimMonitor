@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <Update.h>
 
+
 // Receiver ESP MAC Address (replace with your main ESP's MAC address)
 uint8_t receiverMAC[] = {0x78, 0xE3, 0x6D, 0xDF, 0x69, 0x7C};
 
@@ -27,13 +28,70 @@ typedef struct {
 Message myData;
 Message previousData; // To store the previous state for change detection
 
-bool otaMode = false; // Flag to indicate OTA mode
-unsigned long otaStartTime = 0; // Track OTA start time
+bool otaMode = false;             // Flag to indicate OTA mode
+unsigned long otaStartTime = 0;   // Track OTA start time
 const unsigned long otaTimeout = 30000; // 30-second timeout for OTA mode
+
+// Pin definitions for LEDs
+#define RAMP_UP_PIN 14     // Ramp Up
+#define RAMP_DOWN_PIN 27   // Ramp Down
+#define SIM_HOME_PIN 26    // Sim at Home
 
 void onSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   // Send callback, no extra logging to keep things clean
 }
+
+
+// Callback for receiving ESP-NOW data (normal or OTA)
+void onDataReceived(const esp_now_recv_info_t *recv_info, const uint8_t *incomingData, int len) {
+  if (otaMode) {
+    // Handle OTA data
+    if (len >= sizeof(OTACommand)) {
+      OTACommand *cmd = (OTACommand *)incomingData;
+
+      // Process the firmware chunk
+      if (cmd->chunkSize > 0) {
+        if (!Update.isRunning()) {
+          Update.begin(UPDATE_SIZE_UNKNOWN); // Start OTA update
+        }
+
+        Update.write(cmd->firmwareChunk, cmd->chunkSize);
+
+        // Finalize the update if all chunks are received
+        if (Update.end()) {
+          Serial.println("OTA update completed successfully!");
+          ESP.restart(); // Restart after a successful update
+        } else if (Update.hasError()) {
+          Serial.printf("OTA error: %s\n", Update.errorString());
+        }
+
+        otaStartTime = millis(); // Reset timeout timer
+      }
+      return;
+    }
+  } else {
+    // Check for OTA command
+    if (len >= sizeof(OTACommand)) {
+      OTACommand *cmd = (OTACommand *)incomingData;
+
+      // If the label matches, enter OTA mode
+      if (strcmp(cmd->targetLabel, SELF_LABEL) == 0) {
+        otaMode = true;
+        otaStartTime = millis();
+        Serial.println("Entering OTA mode...");
+      }
+      return;
+    }
+  }
+
+  // If not OTA, process normal incoming data
+  if (len == sizeof(Message)) {
+    const Message *receivedData = (const Message *)incomingData;
+    Serial.printf("Received data from %s: RampState=%d, MotionState=%d, Status=%d\n",
+                  receivedData->simName, receivedData->rampState, receivedData->motionState, receivedData->status);
+  }
+}
+
 
 void setup() {
   Serial.begin(115200);
@@ -57,6 +115,9 @@ void setup() {
 
   // Register send callback
   esp_now_register_send_cb(onSent);
+
+  // Register receive callback
+  esp_now_register_recv_cb(onDataReceived);
 
   // Register peer
   esp_now_peer_info_t peerInfo;
