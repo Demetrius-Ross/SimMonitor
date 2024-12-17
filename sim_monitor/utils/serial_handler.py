@@ -13,43 +13,52 @@ def update_simulators(root, simulators, serial_port='/dev/ttyUSB0', baud_rate=11
     def serial_worker():
         """Worker function to handle serial communication in a separate thread."""
         try:
-            # Open the serial port
-            ser = serial.Serial(serial_port, baud_rate, timeout=1)
+            # Open the serial port with a shorter timeout
+            ser = serial.Serial(serial_port, baud_rate, timeout=0.1)
             print(f"Serial port open: {ser.is_open}")
 
             while True:
-                if ser.in_waiting > 0:
-                    data = ser.readline().decode('utf-8', errors='ignore').strip()
-                    print(f"Raw serial data: {data}")  # Debugging log for raw data
+                try:
+                    # Check if data is available
+                    if ser.in_waiting > 0:
+                        data = ser.readline().decode('utf-8', errors='ignore').strip()
+                        print(f"Raw serial data: {data}")  # Debugging log for raw data
 
-                    # Parse the data (Expected format: "sim_name,ramp_state,motion_state,status")
-                    parts = data.split(",")
-                    if len(parts) == 4:
-                        sim_name = parts[0]
-                        try:
-                            # Safely attempt integer conversion
-                            ramp_state = int(parts[1]) if parts[1].isdigit() else None
-                            motion_state = int(parts[2]) if parts[2].isdigit() else None
-                            status = int(parts[3]) if parts[3].isdigit() else None
+                        # Parse the data (Expected format: "sim_name,ramp_state,motion_state,status")
+                        parts = data.split(",")
+                        if len(parts) == 4:
+                            sim_name = parts[0].strip()
 
-                            # Check for valid parsed integers
-                            if None in (ramp_state, motion_state, status):
-                                raise ValueError("Non-numeric value encountered")
+                            try:
+                                # Safely attempt integer conversion
+                                ramp_state = int(parts[1])
+                                motion_state = int(parts[2])
+                                status = int(parts[3])
 
-                            # Update the simulator state that matches the received name
-                            for sim in simulators:
-                                if sim.name == sim_name:
-                                    # Use `root.after` to safely update the GUI
-                                    root.after(0, sim.update_state, ramp_state, motion_state, status)
-                                    break
-                        except ValueError as e:
-                            print(f"Error parsing data: {data} -> {e}")
+                                # Update the simulator state that matches the received name
+                                for sim in simulators:
+                                    if sim.name == sim_name:
+                                        # Safely update the GUI using `root.after`
+                                        root.after(0, sim.update_state, ramp_state, motion_state, status)
+                                        break
+                                else:
+                                    print(f"Unrecognized simulator name: {sim_name}")
+
+                            except ValueError as e:
+                                print(f"Error parsing data: {data} -> {e}")
+                        else:
+                            print(f"Invalid data format: {data}")
+                
                     else:
-                        print(f"Invalid data format: {data}")  # Log invalid data format
-                else:
-                    time.sleep(0.1)  # Small delay to prevent busy-waiting
-        except Exception as e:
+                        time.sleep(0.05)  # Reduced delay for improved responsiveness
+                except Exception as e:
+                    print(f"Error during serial read or processing: {e}")
+                    time.sleep(0.1)  # Prevent busy loops on exception
+
+        except serial.SerialException as e:
             print(f"Serial communication error: {e}")
+        except Exception as e:
+            print(f"Unhandled error: {e}")
 
     if DEBUG_MODE:
         # Simulate random data updates in debug mode
