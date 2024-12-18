@@ -30,3 +30,16 @@ Components
     Raspberry Pi:
         Receives data from the main ESP via UART.
         Processes the data and displays it on a real-time dashboard or logs it for analysis.
+
+
+
+git clone --recursive https://github.com/espressif/esp-idf.git
+cd esp-idf
+./install.sh
+
+Copy your ESP32 sender code into a new project folder.
+Build the Project: Navigate to your project folder and run:
+    idf.py build
+
+Locate the .bin File: The compiled .bin file will be located under
+    build/esp_sender.bin

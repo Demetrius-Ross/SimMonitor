@@ -23,11 +23,10 @@ class Simulator:
         self.elements.clear()
 
         # Constants for layout
-        padding_x = 100  # Horizontal padding
-        padding_y = 110  # Vertical padding
-        title_offset = 70
-        image_offset = 250
-        text_offset = 30
+        padding_x = 40  # Horizontal padding
+        padding_y = 20  # Vertical padding
+        title_offset = 50
+        image_offset = 210
         motion_status_offset = 340 + padding_y
         ramp_status_offset = 380 + padding_y
         status_offset = 420 + padding_y
@@ -37,7 +36,7 @@ class Simulator:
             self.canvas.create_text(
                 self.x + 120 + padding_x, self.y + title_offset,
                 text=self.name,
-                font=("Helvetica", 24, "bold"),
+                font=("Helvetica", 18, "bold"),
                 fill="black",
                 anchor="center"
             )
@@ -49,7 +48,7 @@ class Simulator:
         else:  # Sim at home (down)
             motion_image_key = "motion_down"
 
-        #print(f"Motion State: {self.motion_state}, Image Key: {motion_image_key}")
+        print(f"Motion State: {self.motion_state}, Image Key: {motion_image_key}")
 
         motion_image = self.images.get(motion_image_key, None)
         if not motion_image:
@@ -98,7 +97,7 @@ class Simulator:
             self.canvas.create_text(
                 text_x, indicator_y,
                 text=label,
-                font=("Helvetica", 30),
+                font=("Helvetica", 14),
                 fill="black",
                 anchor="e"
             )
@@ -106,8 +105,8 @@ class Simulator:
         # Draw indicator
         self.elements.append(
             self.canvas.create_oval(
-                circle_x - 14, indicator_y - 14,
-                circle_x + 14, indicator_y + 14,
+                circle_x - 10, indicator_y - 10,
+                circle_x + 10, indicator_y + 10,
                 fill=color,
                 outline="black",
                 width=2
@@ -118,15 +117,13 @@ class Simulator:
 
     def _draw_status_label_and_indicator(self, label, color, text_x, indicator_y):
         """Helper to draw status labels and indicators."""
-        text_offset = 50
-        circle_x = text_x + text_offset + 20  # Space between text and indicator
+        circle_x = text_x + 20  # Space between text and indicator
         # Draw label
-        
         self.elements.append(
             self.canvas.create_text(
-                text_x + text_offset, indicator_y,
+                text_x, indicator_y,
                 text=label,
-                font=("Helvetica", 24, "bold"),
+                font=("Helvetica", 14),
                 fill="black",
                 anchor="e"
             )
@@ -134,31 +131,10 @@ class Simulator:
         # Draw indicator
         self.elements.append(
             self.canvas.create_oval(
-                circle_x - 14, indicator_y - 14,
-                circle_x + 14, indicator_y + 14,
+                circle_x - 10, indicator_y - 10,
+                circle_x + 10, indicator_y + 10,
                 fill=color,
                 outline="black",
-                width=3
+                width=2
             )
         )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
