@@ -4,8 +4,10 @@ import serial
 import time
 
 DEBUG_MODE = False  # Toggle debug mode for testing without serial input
+serial_port = 'COM5'
+#serial_port = '/dev/ttyUSB0'
 
-def update_simulators(root, simulators, serial_port='/dev/ttyUSB0', baud_rate=115200):
+def update_simulators(root, simulators, serial_port=serial_port, baud_rate=115200):
     """
     Updates the state of simulators based on either debug-mode random data or serial input.
     This function uses threading to avoid blocking the GUI.
