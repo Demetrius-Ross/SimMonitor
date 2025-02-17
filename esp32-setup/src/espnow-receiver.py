@@ -30,10 +30,21 @@ esp_mac = ubinascii.hexlify(wlan.config('mac'), ':').decode()
 
 # === Assign MAC Prefix Based on Device Type ===
 mac_prefix = {"SENDER": "AC:DB:00", "RELAY": "AC:DB:01", "RECEIVER": "AC:DB:02"}
-unique_mac = f"{mac_prefix.get(DEVICE_TYPE, 'AC:DB:FF')}:{device_id:02X}:{device_id:02X}"
+# Ensure DEVICE_TYPE is valid, else fallback to "UNKNOWN"
+if DEVICE_TYPE not in mac_prefix:
+    print(f"[ERROR] Invalid DEVICE_TYPE detected: {DEVICE_TYPE}")
+    DEVICE_TYPE = "UNKNOWN"
+
+# Assign a fallback MAC in case of errors
+unique_mac_prefix = mac_prefix.get(DEVICE_TYPE, "AC:DB:FF")
+
+# Convert ID to Hexadecimal (Fix for MicroPython)
+device_id_hex = "{:02X}".format(device_id)
+
+# Correct MAC formatting (Fixing Syntax Error)
+unique_mac = "{}:{}:{}".format(unique_mac_prefix, device_id_hex, device_id_hex)
 
 print(f"\n[BOOT] Device Role: {DEVICE_TYPE}, ID: {device_id}, MAC: {unique_mac}\n")
-
 # === Store Active Senders & Last Seen Timestamps ===
 active_devices = {}  # {sender_id: last_seen_time}
 
