@@ -3,3 +3,5 @@ mpy-cross
 micropython-espnow
 mpremote
 pyserial
+
+esptool.py --chip esp32 write_flash -z 0x1000 micropython-esp32.bin
