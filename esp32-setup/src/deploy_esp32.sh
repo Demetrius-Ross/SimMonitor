@@ -47,14 +47,14 @@ case $OPTION in
 
         # Step 2: Clean old files before flashing
         echo "🧹 Cleaning old files..."
-        mpremote connect $ESP_DEVICE fs rm -r /main.py /boot.py /espnow_*.py /common_config.py 2>/dev/null
+        mpremote connect $ESP_DEVICE fs rm -r /main.py 2>/dev/null
 
         # Step 3: Copy necessary files to ESP32
         echo "📂 Uploading required files..."
-        mpremote connect $ESP_DEVICE fs cp boot.py :
+        #mpremote connect $ESP_DEVICE fs cp boot.py :
         mpremote connect $ESP_DEVICE fs cp $FILE :/main.py
         mpremote connect $ESP_DEVICE fs cp gpio_test.py :
-        mpremote connect $ESP_DEVICE fs cp common_config.py :
+        #mpremote connect $ESP_DEVICE fs cp common_config.py :
 
         # Step 4: Reset ESP32
         echo "🔄 Resetting ESP32..."
