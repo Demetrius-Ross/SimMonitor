@@ -30,11 +30,13 @@ esp_mac = ubinascii.hexlify(wlan.config('mac'), ':').decode()
 
 # === Assign MAC Prefix Based on Device Type ===
 mac_prefix = {"SENDER": "AC:DB:00", "RELAY": "AC:DB:01", "RECEIVER": "AC:DB:02"}
-unique_mac = f"{mac_prefix[DEVICE_TYPE]}:{device_id:02X}:{device_id:02X}"
+unique_mac_prefix = mac_prefix.get(DEVICE_TYPE, "AC:DB:FF")
+device_id_hex = "{:02X}".format(device_id)
+unique_mac = "{}:{}:{}".format(unique_mac_prefix, device_id_hex, device_id_hex)
 
-print(f"[BOOT] Role: {DEVICE_TYPE}, ID: {device_id}, MAC: {unique_mac}")
+print(f"\n[BOOT] Role: {DEVICE_TYPE}, ID: {device_id}, MAC: {unique_mac}\n")
 
-# === Define Receiver MAC Address (Update with actual MAC) ===
+# === Define Receiver MAC Address (Updated with actual MAC) ===
 receiver_mac = b'\xAC\xDB\x02\x01\x01'  # Replace with actual receiver MAC
 esp.add_peer(receiver_mac)
 
@@ -46,6 +48,9 @@ SIM_HOME_PIN = machine.Pin(26, machine.Pin.IN)
 # === Initialize Data Structures ===
 previous_data = None  # Store last sent data
 last_heartbeat = 0  # Track last heartbeat timestamp
+
+# === Fix: Proper Serial Output for Debugging ===
+print("[INFO] Serial output initialized. Logging messages...")
 
 # === Helper Functions ===
 def get_ramp_state():
@@ -70,8 +75,13 @@ def send_message(message_type="DATA"):
     global previous_data
     msg_id = 0xA1 if message_type == "DATA" else 0xB1  # 0xA1 for data, 0xB1 for heartbeat
 
-    # Construct data packet (Format: ID, Type, RampState, MotionState)
-    data_packet = struct.pack(">BBHH", device_id, msg_id, get_ramp_state(), get_motion_state())
+    # ✅ Fix: MicroPython requires explicit int types in struct.pack()
+    device_id_byte = int(device_id) & 0xFF  # Ensure device_id fits in 1 byte
+    ramp_state = int(get_ramp_state()) & 0xFFFF  # Ensure values fit expected size
+    motion_state = int(get_motion_state()) & 0xFFFF
+
+    # ✅ Fix: Properly pack data (avoid invalid buffer error)
+    data_packet = struct.pack(">BBHH", device_id_byte, msg_id, ramp_state, motion_state)
 
     # Avoid sending duplicate data messages
     if message_type == "DATA" and data_packet == previous_data:
