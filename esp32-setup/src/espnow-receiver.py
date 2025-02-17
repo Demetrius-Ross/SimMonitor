@@ -4,14 +4,6 @@ import machine
 import ubinascii
 import time
 import struct  # For unpacking data
-import sys
-
-try:
-    uart = machine.UART(0, baudrate=115200, tx=1, rx=3)  # TX: GPIO1, RX: GPIO3
-    sys.stdout = uart  # Redirect print output to UART
-    print("[INFO] UART Initialized Successfully")
-except Exception as e:
-    print(f"[ERROR] Failed to initialize UART: {e}")
 
 # === Initialize WiFi in STA Mode (Required for ESP-NOW) ===
 wlan = network.WLAN(network.STA_IF)
@@ -38,15 +30,12 @@ esp_mac = ubinascii.hexlify(wlan.config('mac'), ':').decode()
 
 # === Assign MAC Prefix Based on Device Type ===
 mac_prefix = {"SENDER": "AC:DB:00", "RELAY": "AC:DB:01", "RECEIVER": "AC:DB:02"}
-unique_mac = f"{mac_prefix[DEVICE_TYPE]}:{device_id:02X}:{device_id:02X}"
+unique_mac = f"{mac_prefix.get(DEVICE_TYPE, 'AC:DB:FF')}:{device_id:02X}:{device_id:02X}"
 
-print(f"[BOOT] Device Role: {DEVICE_TYPE}, ID: {device_id}, MAC: {unique_mac}")
+print(f"\n[BOOT] Device Role: {DEVICE_TYPE}, ID: {device_id}, MAC: {unique_mac}\n")
 
 # === Store Active Senders & Last Seen Timestamps ===
 active_devices = {}  # {sender_id: last_seen_time}
-
-# === Serial Setup for Forwarding Data to Raspberry Pi ===
-uart = machine.UART(0, baudrate=115200, tx=1, rx=3)  # TX pin 1, RX pin 3
 
 def on_data_recv(peer, msg):
     """Handle incoming ESP-NOW messages."""
@@ -66,8 +55,7 @@ def on_data_recv(peer, msg):
 
         if msg_type == 0xA1:  # Data Message
             msg_string = f"{sender_id},{ramp_state},{motion_state}"
-            uart.write(msg_string + "\n")
-            print(f"[RECEIVED DATA] {msg_string}")
+            print(f"[RECEIVED DATA] {msg_string}")  # Directly prints instead of using UART.write()
 
         elif msg_type == 0xB1:  # Heartbeat Message
             print(f"[HEARTBEAT] Sender {sender_id} is online.")
