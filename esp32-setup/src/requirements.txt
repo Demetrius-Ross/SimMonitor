@@ -1,0 +1,5 @@
+esptool
+mpy-cross
+micropython-espnow
+mpremote
+pyserial

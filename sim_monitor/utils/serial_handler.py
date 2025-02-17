@@ -4,7 +4,7 @@ import serial
 import time
 import logging
 
-DEBUG_MODE = False  # Toggle debug mode for testing without serial input
+DEBUG_MODE = True  # Toggle debug mode for testing without serial input
 serial_port = 'COM5'
 baud_rate = 115200
 
