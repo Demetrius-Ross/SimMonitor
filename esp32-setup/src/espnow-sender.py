@@ -75,14 +75,17 @@ def send_message(message_type="DATA"):
     global previous_data
     msg_id = 0xA1 if message_type == "DATA" else 0xB1  # 0xA1 for data, 0xB1 for heartbeat
 
-    # ✅ Fix: MicroPython requires explicit int types in struct.pack()
-    device_id_byte = int(device_id) & 0xFF  # Ensure device_id fits in 1 byte
-    ramp_state = int(get_ramp_state()) & 0xFFFF  # Ensure values fit expected size
-    motion_state = int(get_motion_state()) & 0xFFFF
+    device_id_byte = device_id & 0xFF  # Ensure fits 1 byte
+    msg_id_byte = msg_id & 0xFF  # Ensure fits 1 byte
+    ramp_state_short = get_ramp_state() & 0xFFFF  # Ensure 2-byte integer
+    motion_state_short = get_motion_state() & 0xFFFF  # Ensure 2-byte integer
 
-    # ✅ Fix: Properly pack data (avoid invalid buffer error)
-    data_packet = struct.pack(">BBHH", device_id_byte, msg_id, ramp_state, motion_state)
-
+    try:
+        data_packet = struct.pack(">BBHH", device_id_byte, msg_id_byte, ramp_state_short, motion_state_short)
+    except Exception as e:
+        print(f"[ERROR] struct.pack() failed: {e}")
+        return
+    
     # Avoid sending duplicate data messages
     if message_type == "DATA" and data_packet == previous_data:
         return
