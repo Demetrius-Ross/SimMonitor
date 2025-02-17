@@ -4,6 +4,14 @@ import machine
 import ubinascii
 import time
 import struct  # For unpacking data
+import sys
+
+try:
+    uart = machine.UART(0, baudrate=115200, tx=1, rx=3)  # TX: GPIO1, RX: GPIO3
+    sys.stdout = uart  # Redirect print output to UART
+    print("[INFO] UART Initialized Successfully")
+except Exception as e:
+    print(f"[ERROR] Failed to initialize UART: {e}")
 
 # === Initialize WiFi in STA Mode (Required for ESP-NOW) ===
 wlan = network.WLAN(network.STA_IF)
