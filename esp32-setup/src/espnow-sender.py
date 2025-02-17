@@ -37,7 +37,7 @@ unique_mac = "{}:{}:{}".format(unique_mac_prefix, device_id_hex, device_id_hex)
 print(f"\n[BOOT] Role: {DEVICE_TYPE}, ID: {device_id}, MAC: {unique_mac}\n")
 
 # === Define Receiver MAC Address (Updated with actual MAC) ===
-receiver_mac = b'\xAC\xDB\x02\x01\x01'  # Replace with actual receiver MAC
+receiver_mac = b'\xAC\xDB\x02\x01\x01\x00'  # Ensure exactly 6 bytes
 esp.add_peer(receiver_mac)
 
 # === Pin Definitions ===
