@@ -3,7 +3,7 @@ import random
 import serial
 import time
 
-DEBUG_MODE = False  # Toggle debug mode for testing without serial input
+DEBUG_MODE = True  # Toggle debug mode for testing without serial input
 serial_port = 'COM5'
 #serial_port = '/dev/ttyUSB0'
 

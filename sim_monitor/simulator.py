@@ -1,5 +1,6 @@
 class Simulator:
-    def __init__(self, name, x, y, canvas, images):
+    def __init__(self, device_id, name, x, y, canvas, images):
+        self.device_id = device_id  # ✅ Add this line to store device ID
         self.name = name
         self.x = x
         self.y = y
@@ -16,6 +17,10 @@ class Simulator:
         self.status = status
         self.draw()
 
+        # ✅ Debugging Output (Fixed `device_id` reference)
+        print(f"🎨 Simulator Updated: {self.name} (ID={self.device_id}), Ramp={self.ramp_state}, Motion={self.motion_state}")
+
+
     def draw(self):
         # Clear previous drawings
         for element in self.elements:
@@ -23,13 +28,13 @@ class Simulator:
         self.elements.clear()
 
         # Constants for layout
-        padding_x = 40  # Horizontal padding
+        padding_x = 50  # Horizontal padding
         padding_y = 20  # Vertical padding
         title_offset = 50
-        image_offset = 210
-        motion_status_offset = 340 + padding_y
-        ramp_status_offset = 380 + padding_y
-        status_offset = 420 + padding_y
+        image_offset = 240
+        motion_status_offset = 400 + padding_y
+        ramp_status_offset = 440 + padding_y
+        status_offset = 480 + padding_y
 
         # Draw Simulator Name
         self.elements.append(
