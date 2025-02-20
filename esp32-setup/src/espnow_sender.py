@@ -8,6 +8,7 @@ import struct  # For compact data struct packing
 # === Initialize WiFi for ESP-NOW (STA Mode Required) ===
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
+wlan.config(channel=6)  # Example: Channel 6
 
 # === Initialize ESP-NOW ===
 esp = espnow.ESPNow()
@@ -89,14 +90,16 @@ def send_message(message_type="DATA"):
     print(f"    📊 Packet Contents: ID={device_id}, MsgType={msg_id}, RampState={get_ramp_state()}, MotionState={get_motion_state()}")
     print(f"    🕒 Timestamp: {time.time()}")
 
-    # Send the packet
-    result = esp.send(receiver_mac, data_packet)
-    if result:
-        print(f"[INFO] {message_type} Sent Successfully")
-    else:
-        print(f"[ERROR] Failed to send {message_type}, retrying...")
-        esp.send(receiver_mac, data_packet)  # Retry
-
+# Retry Logic for Sending Messages
+    retry_count = 3
+    for attempt in range(retry_count):
+        result = esp.send(receiver_mac, data_packet)
+        if result:
+            print(f"[INFO] {message_type} Sent Successfully on Attempt {attempt + 1}")
+            break
+        else:
+            print(f"[ERROR] Failed to send {message_type}, Attempt {attempt + 1}")
+            time.sleep(0.2)  # Short delay before retrying
     # Update previous data for comparison
     if message_type == "DATA":
         previous_data = data_packet
