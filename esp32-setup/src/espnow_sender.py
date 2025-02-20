@@ -75,24 +75,24 @@ def send_message(message_type="DATA"):
     global previous_data
     msg_id = 0xA1 if message_type == "DATA" else 0xB1  # 0xA1 for data, 0xB1 for heartbeat
 
-    device_id_byte = device_id & 0xFF  # Ensure fits 1 byte
-    msg_id_byte = msg_id & 0xFF  # Ensure fits 1 byte
-    ramp_state_short = get_ramp_state() & 0xFFFF  # Ensure 2-byte integer
-    motion_state_short = get_motion_state() & 0xFFFF  # Ensure 2-byte integer
+    # Construct data packet (Format: ID, Type, RampState, MotionState)
+    data_packet = struct.pack(">BBHH", device_id, msg_id, get_ramp_state(), get_motion_state())
 
-    try:
-        data_packet = struct.pack(">BBHH", device_id_byte, msg_id_byte, ramp_state_short, motion_state_short)
-    except Exception as e:
-        print(f"[ERROR] struct.pack() failed: {e}")
-        return
-    
     # Avoid sending duplicate data messages
     if message_type == "DATA" and data_packet == previous_data:
         return
 
+    # === Debugging: Display Detailed Send Information ===
+    print("\n[SENDER] Attempting to Send Message")
+    print(f"    ➡️ Sending to Receiver MAC: {ubinascii.hexlify(receiver_mac).decode()}")
+    print(f"    📦 Packet Data (Hex): {ubinascii.hexlify(data_packet).decode()}")
+    print(f"    📊 Packet Contents: ID={device_id}, MsgType={msg_id}, RampState={get_ramp_state()}, MotionState={get_motion_state()}")
+    print(f"    🕒 Timestamp: {time.time()}")
+
+    # Send the packet
     result = esp.send(receiver_mac, data_packet)
     if result:
-        print(f"[INFO] {message_type} Sent: {ubinascii.hexlify(data_packet).decode()}")
+        print(f"[INFO] {message_type} Sent Successfully")
     else:
         print(f"[ERROR] Failed to send {message_type}, retrying...")
         esp.send(receiver_mac, data_packet)  # Retry
@@ -100,7 +100,8 @@ def send_message(message_type="DATA"):
     # Update previous data for comparison
     if message_type == "DATA":
         previous_data = data_packet
-
+        
+        
 # === Send Initial Boot Heartbeat ===
 send_message("HEARTBEAT")
 last_heartbeat = time.time()
