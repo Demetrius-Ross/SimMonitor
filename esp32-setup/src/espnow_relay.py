@@ -1,90 +1,102 @@
 import network
 import espnow
-import machine
 import ubinascii
 import time
+import struct
 
-# === Initialize WiFi in STA Mode (Required for ESP-NOW) ===
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
+# --- Activate Dual Mode: STA + AP ---
+sta = network.WLAN(network.STA_IF)
+sta.active(True)
+sta.config(channel=6)
+ap = network.WLAN(network.AP_IF)
+ap.active(True)
+print("Dual mode active:")
+print("  STA MAC:", ubinascii.hexlify(sta.config('mac')))
+print("  AP  MAC:", ubinascii.hexlify(ap.config('mac')))
 
-# === Initialize ESP-NOW ===
+# --- Initialize ESP-NOW ---
 esp = espnow.ESPNow()
 esp.active(True)
+print("ESP-NOW Initialized")
 
-# === Define GPIOs for role identification ===
-role_pins = [machine.Pin(18, machine.Pin.IN), machine.Pin(19, machine.Pin.IN)]
-id_pins = [machine.Pin(2, machine.Pin.IN), machine.Pin(4, machine.Pin.IN), machine.Pin(16, machine.Pin.IN), machine.Pin(17, machine.Pin.IN)]
+# --- Set Relay Virtual MAC and Device ID ---
+# Relay virtual MAC uses the "AC:DB:01" prefix.
+relay_virtual = "AC:DB:01:01:01"
+device_id = 1  # This relay's ID (if needed for logging)
+print("Relay Virtual MAC:", relay_virtual)
 
-# === Read device role from GPIO ===
-role_value = (role_pins[0].value() << 1) | role_pins[1].value()
-roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER"}
-DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
+# --- Add the broadcast peer ---
+broadcast_mac = b'\xff\xff\xff\xff\xff\xff'
+try:
+    esp.add_peer(broadcast_mac)
+    print("Broadcast peer added on Relay")
+except Exception as e:
+    print("Warning: could not add broadcast peer:", e)
 
-# === Read unique device ID from GPIO ===
-device_id = sum(pin.value() << i for i, pin in enumerate(id_pins))
-
-# === Get Device MAC Address ===
-esp_mac = ubinascii.hexlify(wlan.config('mac'), ':').decode()
-
-print(f"[BOOT] Role: {DEVICE_TYPE}, ID: {device_id}, MAC: {esp_mac}")
-
-# === Peer Discovery (No Manual MAC Addresses) ===
-known_peers = {}
-
-def discover_peers():
-    """Listen for peer announcements and store them."""
-    while True:
-        peer, msg = esp.recv()
-        if msg:
-            msg = msg.decode('utf-8')
-            if msg.startswith("DISCOVER:"):
-                peer_type, peer_id, peer_mac = msg.split(":")[1:]
-
-                # Add sender or relay to known peers
-                known_peers[peer_mac] = {"type": peer_type, "id": int(peer_id)}
-                print(f"[DISCOVERED] {peer_type} {peer_id} at {peer_mac}")
-
-                # Add as a peer in ESP-NOW
-                esp.add_peer(peer_mac.encode())
-
-        time.sleep(1)
-
-# === Announce This Device (For Auto-Discovery) ===
-def announce():
-    """Broadcast our presence for peer discovery."""
-    msg = f"DISCOVER:{DEVICE_TYPE}:{device_id}:{esp_mac}"
-    esp.send(b'\xFF\xFF\xFF\xFF\xFF\xFF', msg.encode())  # Broadcast to all devices
-
-# === Relay Logic (Dynamic Routing) ===
-def relay_message():
-    """Receive and forward messages dynamically."""
-    while True:
-        peer, msg = esp.recv()
-        if msg:
-            msg = msg.decode('utf-8')
-            print(f"[RECEIVED] {msg} from {peer}")
-
-            # Determine next-hop relay or receiver dynamically
-            next_hop = None
-            if DEVICE_TYPE == "RELAY":
-                next_hop = next((mac for mac, data in known_peers.items() if data["type"] == "RECEIVER"), None)
-
-            if next_hop:
-                print(f"[FORWARDING] Sending to {next_hop}")
-                esp.send(next_hop.encode(), msg.encode())
+# --- Define the Relay Callback ---
+def on_data_recv(*args):
+    # Expect at least 2 args: peer and msg.
+    if len(args) < 2:
+        return
+    peer, msg = args
+    if not msg:
+        return
+    try:
+        # Expecting data messages to be 22 bytes:
+        #   Destination (16 bytes) | Sender ID (1 byte) | Msg Type (1 byte) | Ramp (2 bytes) | Motion (2 bytes)
+        if len(msg) == 22:
+            dest_field, sender_id, msg_type, ramp_state, motion_state = struct.unpack(">16sBBHH", msg)
+            dest_virtual = dest_field.decode().strip('\x00')
+            print("\nRelay received message:")
+            print("  From Sender ID:", sender_id)
+            print("  Destination Virtual MAC:", dest_virtual)
+            print("  Msg Type:", msg_type, "Ramp:", ramp_state, "Motion:", motion_state)
+            # If the message isn't addressed to this relay, forward it.
+            if dest_virtual != relay_virtual:
+                try:
+                    # Forward the message using broadcast.
+                    if esp.send(broadcast_mac, msg):
+                        print("Relay forwarded message")
+                    else:
+                        print("Relay failed to forward message")
+                except Exception as e:
+                    print("Relay exception during forwarding:", e)
             else:
-                print("[ERROR] No available next hop")
+                print("Relay: Message is intended for me; processing locally if needed.")
+        else:
+            print("Relay: Received message with unexpected length:", len(msg))
+    except Exception as e:
+        print("Relay: Failed to process message:", e)
 
-        time.sleep(0.1)
+# --- Register the IRQ callback ---
+esp.irq(on_data_recv)
 
-# === Start Execution Based on Role ===
-announce()
-discover_peers()
-
-if DEVICE_TYPE == "RELAY":
-    relay_message()
-elif DEVICE_TYPE == "SENDER":
-    print("[SENDER] Ready to send messages.")
-elif DEVICE_TYPE == "RECEIVER":
-    print("[RECEIVER] Ready to process incoming messages.")
+print("Relay is ready, waiting for messages (polling fallback)...")
+# --- Polling Loop as a Backup ---
+while True:
+    peer, msg = esp.recv()
+    if msg:
+        try:
+            if len(msg) == 22:
+                dest_field, sender_id, msg_type, ramp_state, motion_state = struct.unpack(">16sBBHH", msg)
+                dest_virtual = dest_field.decode().strip('\x00')
+                print("\nPoll: Received message:")
+                print("  From Sender ID:", sender_id)
+                print("  Destination Virtual MAC:", dest_virtual)
+                print("  Msg Type:", msg_type, "Ramp:", ramp_state, "Motion:", motion_state)
+                # Forward if not addressed to the relay itself.
+                if dest_virtual != relay_virtual:
+                    try:
+                        if esp.send(broadcast_mac, msg):
+                            print("Poll: Relay forwarded message")
+                        else:
+                            print("Poll: Relay failed to forward message")
+                    except Exception as e:
+                        print("Poll: Exception during forwarding:", e)
+                else:
+                    print("Poll: Message intended for this relay.")
+            else:
+                print("Poll: Received message with unexpected length:", len(msg))
+        except Exception as e:
+            print("Poll: Failed to process message:", e)
+    time.sleep(1)

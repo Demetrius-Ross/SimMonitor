@@ -1,16 +1,53 @@
 #!/bin/bash
 
-# Deployment & Management Script for ESP32 with MicroPython
+# Function to pause and prevent terminal from closing
+pause() {
+    read -p "Press any key to continue..."
+}
 
-echo "🔍 Detecting ESP32 device..."
-ESP_DEVICE=$(ls /dev/ttyUSB* 2>/dev/null)
+# Function to detect COM port on Windows using PowerShell
+detect_com_port() {
+    echo "🔍 Checking available COM ports..."
 
-if [ -z "$ESP_DEVICE" ]; then
-    echo "❌ No ESP32 device found. Please check the connection and try again."
-    exit 1
+    # Get list of COM ports using PowerShell
+    AVAILABLE_PORTS=$(powershell -Command "Get-WmiObject Win32_SerialPort | Select-Object -ExpandProperty DeviceID")
+    echo "ℹ️ Available Ports: $AVAILABLE_PORTS"
+
+    # Check for COM6 or COM10
+    for PORT in COM6 COM10; do
+        if echo "$AVAILABLE_PORTS" | grep -q "$PORT"; then
+            ESP_DEVICE=$PORT
+            echo "✅ ESP32 detected at $ESP_DEVICE"
+            break
+        fi
+    done
+
+    # If neither COM6 nor COM10 is found
+    if [ -z "$ESP_DEVICE" ]; then
+        echo "❌ No ESP32 device found on COM6 or COM10. Please check the connection and try again."
+        pause
+        exit 1
+    fi
+}
+
+# Check if we're on Windows
+if [[ "$OS" == "Windows_NT" ]]; then
+    echo "🔍 Detecting ESP32 device on Windows..."
+    detect_com_port
+else
+    echo "🔍 Detecting ESP32 device on Linux..."
+
+    # For Linux (e.g., Raspberry Pi)
+    ESP_DEVICE=$(ls /dev/ttyUSB* 2>/dev/null)
+    if [ -z "$ESP_DEVICE" ]; then
+        echo "❌ No ESP32 device found. Please check the connection and try again."
+        pause
+        exit 1
+    fi
+    echo "✅ Found ESP32 at $ESP_DEVICE"
 fi
 
-echo "✅ Found ESP32 at $ESP_DEVICE"
+echo "✅ Using ESP32 at $ESP_DEVICE"
 
 # Prompt user for action
 echo "Select an option:"
@@ -22,7 +59,6 @@ echo "5) Run GPIO test script"
 echo "6) View online devices (ESP32 only)"
 echo "7) Monitor online devices from Raspberry Pi"
 read -p "Enter choice (1/2/3/4/5/6/7): " OPTION
-
 
 case $OPTION in
     1)
@@ -37,7 +73,7 @@ case $OPTION in
             1) FILE="espnow_sender.py"; ROLE_NAME="Sender";;
             2) FILE="espnow_relay.py"; ROLE_NAME="Relay";;
             3) FILE="espnow_receiver.py"; ROLE_NAME="Receiver";;
-            *) echo "❌ Invalid choice. Exiting."; exit 1;;
+            *) echo "❌ Invalid choice. Exiting."; pause; exit 1;;
         esac
 
         echo "🚀 Deploying $FILE to ESP32 ($ROLE_NAME)..."
@@ -46,6 +82,7 @@ case $OPTION in
         echo "🔍 Checking if MicroPython is installed..."
         mpremote connect $ESP_DEVICE exec "print('MicroPython detected')" || {
             echo "❌ MicroPython not detected. Please flash MicroPython first."
+            pause
             exit 1
         }
 
@@ -55,11 +92,9 @@ case $OPTION in
 
         # Step 3: Copy necessary files to ESP32
         echo "📂 Uploading required files..."
-        #mpremote connect $ESP_DEVICE fs cp boot.py :
         mpremote connect $ESP_DEVICE fs cp $FILE :/main.py
         mpremote connect $ESP_DEVICE fs cp gpio_test.py :
         mpremote connect $ESP_DEVICE fs cp online-devices.py :
-        #mpremote connect $ESP_DEVICE fs cp common_config.py :
 
         # Step 4: Reset ESP32
         echo "🔄 Resetting ESP32..."
@@ -74,12 +109,14 @@ case $OPTION in
         read -p "⚠️ This will erase all data. Continue? (y/n): " CONFIRM
         if [ "$CONFIRM" != "y" ]; then
             echo "❌ Flashing canceled."
+            pause
             exit 1
         fi
 
         read -p "Enter the path to the MicroPython .bin file: " BIN_FILE
         if [ ! -f "$BIN_FILE" ]; then
             echo "❌ File not found: $BIN_FILE"
+            pause
             exit 1
         fi
 
@@ -125,6 +162,11 @@ case $OPTION in
 
     *)
         echo "❌ Invalid option. Exiting."
+        pause
         exit 1
         ;;
 esac
+
+# === Prevent Terminal from Closing ===
+echo "✅ Script execution completed."
+pause
