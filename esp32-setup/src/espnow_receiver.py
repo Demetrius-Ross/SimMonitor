@@ -8,6 +8,7 @@ import struct  # For unpacking data
 # === Initialize WiFi in STA Mode (Required for ESP-NOW) ===
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
+wlan.config(channel=6)  # Example: Channel 6
 
 # === Initialize ESP-NOW ===
 esp = espnow.ESPNow()
