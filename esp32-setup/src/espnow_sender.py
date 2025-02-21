@@ -70,9 +70,9 @@ def broadcast_identity():
 
 
 # === Pin Definitions for Sensor Inputs ===
-RAMP_UP_PIN = machine.Pin(14, machine.Pin.IN)
-RAMP_DOWN_PIN = machine.Pin(27, machine.Pin.IN)
-SIM_HOME_PIN = machine.Pin(26, machine.Pin.IN)
+RAMP_UP_PIN = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN)
+RAMP_DOWN_PIN = machine.Pin(27, machine.Pin.IN, machine.Pin.PULL_DOWN)
+SIM_HOME_PIN = machine.Pin(26, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
 # --- Sensor Functions  ---
 def get_ramp_state():
