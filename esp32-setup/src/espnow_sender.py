@@ -68,14 +68,26 @@ def broadcast_identity():
     except Exception as e:
         print("[ERROR] Exception during identity broadcast:", e)
 
-# --- Sensor Functions (dummy values for testing) ---
+
+# === Pin Definitions for Sensor Inputs ===
+RAMP_UP_PIN = machine.Pin(14, machine.Pin.IN)
+RAMP_DOWN_PIN = machine.Pin(27, machine.Pin.IN)
+SIM_HOME_PIN = machine.Pin(26, machine.Pin.IN)
+
+# --- Sensor Functions  ---
 def get_ramp_state():
-    # Replace with actual sensor reading.
-    return 1
+    ramp_up = RAMP_UP_PIN.value()
+    ramp_down = RAMP_DOWN_PIN.value()
+    if ramp_up == 1 and ramp_down == 1:
+        return 0  # In Motion
+    elif ramp_up == 0:
+        return 1  # Ramp Up
+    elif ramp_down == 0:
+        return 2  # Ramp Down
+    return 0
 
 def get_motion_state():
-    # Replace with actual sensor reading.
-    return 2
+    return 1 if SIM_HOME_PIN.value() == 0 else 2
 
 # --- Data Message Sending Function (24 bytes) ---
 def send_data_message():
