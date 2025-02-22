@@ -31,6 +31,24 @@ mpremote connect /dev/ttyUSB0 run gpio_test.py
 
 ![alt text](image-sender.png)
 
+Device ID,Binary (bit3..bit0),Pin17 (bit3),Pin16 (bit2),Pin4 (bit1),Pin2 (bit0)
+0,0000,0 (LOW),0 (LOW),0 (LOW),0 (LOW)
+1,0001,0 (LOW),0 (LOW),0 (LOW),1 (HIGH)
+2,0010,0 (LOW),0 (LOW),1 (HIGH),0 (LOW)
+3,0011,0 (LOW),0 (LOW),1 (HIGH),1 (HIGH)
+4,0100,0 (LOW),1 (HIGH),0 (LOW),0 (LOW)
+5,0101,0 (LOW),1 (HIGH),0 (LOW),1 (HIGH)
+6,0110,0 (LOW),1 (HIGH),1 (HIGH),0 (LOW)
+7,0111,0 (LOW),1 (HIGH),1 (HIGH),1 (HIGH)
+8,1000,1 (HIGH),0 (LOW),0 (LOW),0 (LOW)
+9,1001,1 (HIGH),0 (LOW),0 (LOW),1 (HIGH)
+10,1010,1 (HIGH),0 (LOW),1 (HIGH),0 (LOW)
+11,1011,1 (HIGH),0 (LOW),1 (HIGH),1 (HIGH)
+12,1100,1 (HIGH),1 (HIGH),0 (LOW),0 (LOW)
+13,1101,1 (HIGH),1 (HIGH),0 (LOW),1 (HIGH)
+14,1110,1 (HIGH),1 (HIGH),1 (HIGH),0 (LOW)
+15,1111,1 (HIGH),1 (HIGH),1 (HIGH),1 (HIGH)
+
 ![alt text](image-relay.png)
 
 ![alt text](image-receiver.png)
