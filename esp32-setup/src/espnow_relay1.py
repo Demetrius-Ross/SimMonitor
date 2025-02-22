@@ -3,88 +3,171 @@ import espnow
 import machine
 import ubinascii
 import time
+import struct
 
-# === Initialize WiFi in STA Mode (Required for ESP-NOW) ===
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
+print("Starting Relay Node...")
+
+# === GPIO for Role & ID ===
+role_pins = [machine.Pin(18, machine.Pin.IN), machine.Pin(19, machine.Pin.IN)]
+id_pins = [machine.Pin(2, machine.Pin.IN),
+           machine.Pin(4, machine.Pin.IN),
+           machine.Pin(16, machine.Pin.IN),
+           machine.Pin(17, machine.Pin.IN)]
+
+role_value = (role_pins[0].value() << 1) | role_pins[1].value()
+roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER"}
+DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
+device_id = sum(pin.value() << i for i, pin in enumerate(id_pins))
+
+print(f"[BOOT] Role: {DEVICE_TYPE}, ID: {device_id}")
+
+# We only proceed if this node is a RELAY
+if DEVICE_TYPE != "RELAY":
+    print("Not configured as RELAY. Exiting.")
+    raise SystemExit
+
+# === STA + AP for ESP-NOW ===
+sta = network.WLAN(network.STA_IF)
+sta.active(True)
+sta.config(channel=6)
+ap = network.WLAN(network.AP_IF)
+ap.active(True)
 
 # === Initialize ESP-NOW ===
 esp = espnow.ESPNow()
 esp.active(True)
+print("[INIT] ESP-NOW active on Relay")
 
-# === Define GPIOs for role identification ===
-role_pins = [machine.Pin(18, machine.Pin.IN), machine.Pin(19, machine.Pin.IN)]
-id_pins = [machine.Pin(2, machine.Pin.IN), machine.Pin(4, machine.Pin.IN), machine.Pin(16, machine.Pin.IN), machine.Pin(17, machine.Pin.IN)]
-
-# === Read device role from GPIO ===
-role_value = (role_pins[0].value() << 1) | role_pins[1].value()
-roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER"}
-DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
-
-# === Read unique device ID from GPIO ===
-device_id = sum(pin.value() << i for i, pin in enumerate(id_pins))
-
-# === Get Device MAC Address ===
-esp_mac = ubinascii.hexlify(wlan.config('mac'), ':').decode()
-
-print(f"[BOOT] Role: {DEVICE_TYPE}, ID: {device_id}, MAC: {esp_mac}")
-
-# === Peer Discovery (No Manual MAC Addresses) ===
+# === Dictionary to store known peers and distances ===
+# Key = Virtual MAC (like "AC:DB:00:01:01"), Value = dict with:
+#   { 'real_mac': b'...', 'hop': <int>, 'type': "SENDER"/"RELAY"/"RECEIVER" }
 known_peers = {}
 
-def discover_peers():
-    """Listen for peer announcements and store them."""
-    while True:
-        peer, msg = esp.recv()
-        if msg:
-            msg = msg.decode('utf-8')
-            if msg.startswith("DISCOVER:"):
-                peer_type, peer_id, peer_mac = msg.split(":")[1:]
+# For final receiver we assume Virtual MAC = "AC:DB:02:01:01"
+# We'll store the best known next hop. e.g. known_peers["AC:DB:02:01:01"] = { ... }
 
-                # Add sender or relay to known peers
-                known_peers[peer_mac] = {"type": peer_type, "id": int(peer_id)}
-                print(f"[DISCOVERED] {peer_type} {peer_id} at {peer_mac}")
+# === Add Broadcast MAC as a peer for receiving identity packets ===
+broadcast_mac = b'\xff\xff\xff\xff\xff\xff'
+try:
+    esp.add_peer(broadcast_mac)
+except:
+    pass
 
-                # Add as a peer in ESP-NOW
-                esp.add_peer(peer_mac.encode())
+# === Packet Format for Identity (22 bytes) => 16s + 6s
+# === Packet Format for Data/Heartbeat (24 bytes) => 16s + B + B + H + H + H
+PACKET_FORMAT = ">16sBBHHH"
+PACKET_SIZE = struct.calcsize(PACKET_FORMAT)
 
-        time.sleep(1)
+# === Relay Logic: if we get a packet for the final receiver and can't deliver,
+# we forward it to another relay with fewer hops if known.
+FINAL_VMAC = "AC:DB:02:01:01"  # Example final receiver's virtual MAC
 
-# === Announce This Device (For Auto-Discovery) ===
-def announce():
-    """Broadcast our presence for peer discovery."""
-    msg = f"DISCOVER:{DEVICE_TYPE}:{device_id}:{esp_mac}"
-    esp.send(b'\xFF\xFF\xFF\xFF\xFF\xFF', msg.encode())  # Broadcast to all devices
+def process_identity_packet(msg):
+    """Unpack identity => store the peer's Virtual->Real mapping."""
+    try:
+        vmac_bytes, rmac = struct.unpack("16s6s", msg)
+        vmac_str = vmac_bytes.decode().strip('\x00')
 
-# === Relay Logic (Dynamic Routing) ===
-def relay_message():
-    """Receive and forward messages dynamically."""
-    while True:
-        peer, msg = esp.recv()
-        if msg:
-            msg = msg.decode('utf-8')
-            print(f"[RECEIVED] {msg} from {peer}")
+        # For demonstration, we assume each identity broadcast includes hop=1 if from the node itself.
+        # In a more advanced approach, they'd broadcast their distance to the final receiver, etc.
+        # We'll store them with hop=999 if we don't know better.
+        if vmac_str not in known_peers:
+            known_peers[vmac_str] = {
+                'real_mac': rmac,
+                'hop': 999,
+                'type': "UNKNOWN"
+            }
+            try:
+                esp.add_peer(rmac)
+            except:
+                pass
 
-            # Determine next-hop relay or receiver dynamically
-            next_hop = None
-            if DEVICE_TYPE == "RELAY":
-                next_hop = next((mac for mac, data in known_peers.items() if data["type"] == "RECEIVER"), None)
+        print(f"[IDENTITY] {vmac_str} => {ubinascii.hexlify(rmac)} stored (hop=999 by default)")
+    except Exception as e:
+        print("[ERROR] Identity packet parse error:", e)
 
-            if next_hop:
-                print(f"[FORWARDING] Sending to {next_hop}")
-                esp.send(next_hop.encode(), msg.encode())
+def forward_packet(dest_vmac, data_packet):
+    """Attempt to send data_packet to the final receiver or a next-hop relay."""
+    # If we know the final receiver's real_mac and hop < 999, try direct
+    if dest_vmac == FINAL_VMAC and dest_vmac in known_peers:
+        info = known_peers[dest_vmac]
+        if info['hop'] < 999:
+            rmac = info['real_mac']
+            if esp.send(rmac, data_packet):
+                print(f"[FORWARD] Delivered directly to final receiver {dest_vmac}")
+                return True
             else:
-                print("[ERROR] No available next hop")
+                print("[WARN] Direct send to final receiver failed")
+        else:
+            print("[WARN] We have no good hop to final receiver yet")
 
-        time.sleep(0.1)
+    # Otherwise, find a known relay with a better hop
+    best_relay = None
+    best_hop = 999
+    for vmac_str, peer_info in known_peers.items():
+        if peer_info['type'] == "RELAY" and peer_info['hop'] < best_hop:
+            best_hop = peer_info['hop']
+            best_relay = peer_info['real_mac']
 
-# === Start Execution Based on Role ===
-announce()
-discover_peers()
+    if best_relay:
+        print(f"[FORWARD] Trying best relay with hop={best_hop}")
+        if esp.send(best_relay, data_packet):
+            print("[FORWARD] Packet forwarded to relay")
+            return True
+        else:
+            print("[WARN] Forward to best relay failed")
+    return False
 
-if DEVICE_TYPE == "RELAY":
-    relay_message()
-elif DEVICE_TYPE == "SENDER":
-    print("[SENDER] Ready to send messages.")
-elif DEVICE_TYPE == "RECEIVER":
-    print("[RECEIVER] Ready to process incoming messages.")
+def on_data_recv(peer, msg):
+    """Handle incoming packets on the relay."""
+    if not msg:
+        return
+
+    length = len(msg)
+    if length == 22:
+        # Identity packet
+        process_identity_packet(msg)
+    elif length == PACKET_SIZE:
+        # Data or Heartbeat
+        try:
+            dest_field, sender_id, msg_type, ramp_state, motion_state, seq = struct.unpack(PACKET_FORMAT, msg)
+            dest_vmac = dest_field.decode().strip('\x00')
+
+            # If we are a relay and the packet is not for us, attempt to forward
+            if dest_vmac == FINAL_VMAC:
+                # The final receiver
+                # Attempt direct or via next-hop
+                if forward_packet(dest_vmac, msg):
+                    print(f"[RELAY] Forwarded msg_type=0x{msg_type:02X}, from SenderID={sender_id}, Seq={seq}")
+                else:
+                    print("[RELAY] Forward attempt failed (no route or send error)")
+            else:
+                # Possibly for another relay? We can attempt the same forward logic if we know the route
+                if forward_packet(dest_vmac, msg):
+                    print(f"[RELAY] Forwarded to next relay for {dest_vmac}")
+                else:
+                    print("[RELAY] No route to that destination or forward failed")
+
+        except Exception as e:
+            print("[ERROR] Data packet parse error:", e)
+    else:
+        print("[WARN] Received packet with unexpected length:", length)
+
+def relay_main_loop():
+    """Main loop for the relay."""
+    while True:
+        try:
+            peer, msg = esp.recv()
+            if msg:
+                on_data_recv(peer, msg)
+        except Exception as e:
+            print("[ERROR] relay_main_loop error:", e)
+        time.sleep(0.05)
+
+# === Setup ESP-NOW callback
+esp.irq(on_data_recv)
+
+print("[RELAY] Ready to forward messages...")
+
+# === A minimal loop to keep the code alive
+relay_main_loop()
