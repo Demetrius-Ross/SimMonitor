@@ -51,10 +51,10 @@ try:
 except Exception as e:
     print("[WARN] Could not add broadcast peer:", e)
 
-# --- Global Sequence Counter for Data Messages ---
+# --- Global Sequence Counter ---
 seq_counter = 0
 
-# --- Identity Broadcast Function (22-byte packet) ---
+# --- Identity Broadcast (22-byte packet) ---
 def broadcast_identity():
     padded_vmac = virtual_mac.encode()
     if len(padded_vmac) < 16:
@@ -68,13 +68,12 @@ def broadcast_identity():
     except Exception as e:
         print("[ERROR] Exception during identity broadcast:", e)
 
-
-# === Pin Definitions for Sensor Inputs ===
+# === Pin Definitions (with pull-down) ===
 RAMP_UP_PIN = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN)
 RAMP_DOWN_PIN = machine.Pin(27, machine.Pin.IN, machine.Pin.PULL_DOWN)
 SIM_HOME_PIN = machine.Pin(26, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
-# --- Sensor Functions  ---
+# === Sensor Functions ===
 def get_ramp_state():
     ramp_up = RAMP_UP_PIN.value()
     ramp_down = RAMP_DOWN_PIN.value()
@@ -89,19 +88,21 @@ def get_ramp_state():
 def get_motion_state():
     return 1 if SIM_HOME_PIN.value() == 0 else 2
 
-# --- Data Message Sending Function (24 bytes) ---
+# === Data Message (24 bytes) ===
 def send_data_message():
+    """Send a 24-byte data packet (0xA1)."""
     global seq_counter
-    msg_type = 0xA1  # Data message type; use 0xB1 for heartbeat if needed.
-    # Intended destination's virtual MAC (e.g., receiver's):
+    msg_type = 0xA1
     dest_virtual = "AC:DB:02:01:01"
     dest_field = dest_virtual.encode()
     if len(dest_field) < 16:
         dest_field += b'\x00' * (16 - len(dest_field))
-    # Build the data packet (24 bytes):
-    # Structure: Destination (16s) | Sender ID (B) | Msg Type (B) | Ramp State (H) | Motion State (H) | Sequence (H)
-    packet = struct.pack(">16sBBHHH", dest_field, device_id, msg_type, get_ramp_state(), get_motion_state(), seq_counter)
+
+    packet = struct.pack(">16sBBHHH",
+                         dest_field, device_id, msg_type,
+                         get_ramp_state(), get_motion_state(), seq_counter)
     seq_counter = (seq_counter + 1) % 65536
+
     print("\n[SENDER] Sending Data Message")
     print("  Destination:", dest_virtual)
     print("  Packet (hex):", ubinascii.hexlify(packet))
@@ -114,17 +115,21 @@ def send_data_message():
     except Exception as e:
         print("[ERROR] Exception during data send:", e)
 
-# --- Heartbeat Message Sending Function (24 bytes) ---
+# === Heartbeat Message (24 bytes) ===
 def send_heartbeat():
+    """Send a 24-byte heartbeat packet (0xB1)."""
     global seq_counter
-    msg_type = 0xB1  # Heartbeat message type.
+    msg_type = 0xB1
     dest_virtual = "AC:DB:02:01:01"
     dest_field = dest_virtual.encode()
     if len(dest_field) < 16:
         dest_field += b'\x00' * (16 - len(dest_field))
-    # Use the same structure, but with msg_type 0xB1.
-    packet = struct.pack(">16sBBHHH", dest_field, device_id, msg_type, get_ramp_state(), get_motion_state(), seq_counter)
+
+    packet = struct.pack(">16sBBHHH",
+                         dest_field, device_id, msg_type,
+                         get_ramp_state(), get_motion_state(), seq_counter)
     seq_counter = (seq_counter + 1) % 65536
+
     print("\n[SENDER] Sending Heartbeat Message")
     print("  Destination:", dest_virtual)
     print("  Packet (hex):", ubinascii.hexlify(packet))
@@ -137,21 +142,37 @@ def send_heartbeat():
     except Exception as e:
         print("[ERROR] Exception during heartbeat send:", e)
 
-# --- Main Loop ---
-# Broadcast identity once at startup.
+# --- Broadcast identity once at startup ---
 broadcast_identity()
 last_identity_time = time.time()
+
 last_heartbeat_time = time.time()
 
+# Keep track of previous ramp & motion to detect changes
+prev_ramp_state = None
+prev_motion_state = None
+
 while True:
-    # Update identity every 30 seconds.
+    # Identity broadcast every 30 seconds (optional)
     if time.time() - last_identity_time >= 30:
         broadcast_identity()
         last_identity_time = time.time()
-    # Send heartbeat every 30 seconds.
+
+    # Heartbeat every 30 seconds
     if time.time() - last_heartbeat_time >= 30:
         send_heartbeat()
         last_heartbeat_time = time.time()
-    # Send a data message every 2 seconds.
-    send_data_message()
+
+    # Check current ramp & motion
+    current_ramp = get_ramp_state()
+    current_motion = get_motion_state()
+
+    # If first iteration (prev_ramp_state is None) or there's a state change => send data
+    if (prev_ramp_state is None or
+        current_ramp != prev_ramp_state or
+        current_motion != prev_motion_state):
+        send_data_message()
+        prev_ramp_state = current_ramp
+        prev_motion_state = current_motion
+
     time.sleep(2)

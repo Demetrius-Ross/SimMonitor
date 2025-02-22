@@ -69,7 +69,7 @@ while True:
                             # Print a line for the Pi
                             print(f"[DATA] Received from Sender ID {sender_id_val}: RampState={ramp_state}, MotionState={motion_state}, Seq={seq}")
                         elif msg_type == 0xB1:
-                            print(f"[HEARTBEAT] Received from Sender ID {sender_id_val}, Seq={seq}")
+                            print(f"[HEARTBEAT] Received from Sender ID {sender_id_val}: RampState={ramp_state}, MotionState={motion_state}, Seq={seq}")
                         else:
                             print(f"[INFO] Unknown msg type 0x{msg_type:02X} from Sender ID {sender_id_val}")
                     else:
