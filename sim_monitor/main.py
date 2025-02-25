@@ -45,10 +45,10 @@ def add_simulator(device_id):
         else:
             # If device_id not in layout, default to (0,0) or skip
             col_index, row_index = (0, 0)
-
+        x_spacing = 160
         # Now compute x,y from col,row
         # e.g. each col is 400 px wide, each row is 450 px tall
-        x_pos = 10 + col_index * 400
+        x_pos = 10 + col_index * x_spacing
         if row_index==1:
             y_pos = 110 + row_index * 450
         else:
@@ -56,6 +56,8 @@ def add_simulator(device_id):
 
         # Create the simulator
         simulators[device_id] = Simulator(device_id, simulator_name, x_pos, y_pos, canvas, images)
+
+        simulators[device_id].draw()
 
         logger.info(f"📌 New Simulator Added: {simulator_name} (ID: {device_id}) at Row={row_index},Col={col_index}")
         logger.info(f"📌 Total Simulators: {len(simulators)}")
