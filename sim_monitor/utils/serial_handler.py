@@ -8,7 +8,7 @@ try:
 except ImportError:
     serial = None  # or mock if needed
 
-DEBUG_MODE = False
+DEBUG_MODE = True
 SERIAL_PORT = "COM10"
 BAUD_RATE = 115200
 
@@ -45,6 +45,17 @@ def update_simulators(root, simulators, add_simulator,
                 b"[DATA] Received from Sender ID 1: RampState=2, MotionState=1, Seq=54\n",
                 b"[HEARTBEAT] Received from Sender ID 1: RampState=2, MotionState=1, Seq=99\n",
                 b"[DATA] Received from Sender ID 2: RampState=0, MotionState=2, Seq=100\n",
+                b"[HEARTBEAT] Received from Sender ID 2: RampState=2, MotionState=1, Seq=99\n",
+                b"[DATA] Received from Sender ID 3: RampState=0, MotionState=2, Seq=100\n",
+                b"[HEARTBEAT] Received from Sender ID 3: RampState=2, MotionState=1, Seq=99\n",
+                b"[DATA] Received from Sender ID 4: RampState=0, MotionState=2, Seq=100\n",
+                b"[HEARTBEAT] Received from Sender ID 4: RampState=2, MotionState=1, Seq=99\n",
+                b"[DATA] Received from Sender ID 5: RampState=0, MotionState=2, Seq=100\n",
+                b"[HEARTBEAT] Received from Sender ID 5: RampState=2, MotionState=1, Seq=99\n",
+                b"[DATA] Received from Sender ID 6: RampState=0, MotionState=2, Seq=100\n",
+                b"[HEARTBEAT] Received from Sender ID 6: RampState=2, MotionState=1, Seq=99\n",
+                b"[DATA] Received from Sender ID 7: RampState=0, MotionState=2, Seq=100\n",
+                b"[HEARTBEAT] Received from Sender ID 7: RampState=2, MotionState=1, Seq=99\n",
             ]
             self.index = 0
 

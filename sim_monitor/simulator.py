@@ -19,7 +19,7 @@ class Simulator:
         """Updates ramp/motion and draws the 'Connected' UI."""
         self.ramp_state = ramp_state
         self.motion_state = motion_state
-        self.offline = False  # Mark as connected
+        self.offline = True  # Mark as connected
         self.draw()
 
         print(f"🎨 Simulator Updated: {self.name} (ID={self.device_id}), "
@@ -39,10 +39,7 @@ class Simulator:
             self.canvas.delete(element)
         self.elements.clear()
 
-        # If offline, show a big red 'Disconnected' message
-        if self.offline:
-            self._draw_offline_ui()
-            return
+        
 
         # Layout constants
         padding_x = 50
@@ -59,11 +56,13 @@ class Simulator:
                 self.x + 120 + padding_x,
                 self.y + title_offset,
                 text=self.name,
-                font=("Helvetica", 18, "bold"),
+                font=("Helvetica", 28, "bold"),
                 fill="black",
                 anchor="center"
             )
         )
+
+        
 
         # Determine motion image
         if self.motion_state == 2:  # Sim Up
@@ -88,13 +87,18 @@ class Simulator:
             )
         )
 
+        # If offline, show a big red 'Disconnected' message
+        if self.offline:
+            self._draw_offline_ui()
+            return
+
         # Draw Motion Status
         # 1 = "Home" or "Down", 2 = "Up", 0 = "In Motion"
         motion_color = "green" if self.motion_state == 1 else "red"
         self._draw_status_label_and_indicator(
             "Motion Status:",
             motion_color,
-            self.x + 165 + padding_x,
+            self.x + 220 + padding_x,
             self.y + motion_status_offset
         )
 
@@ -110,7 +114,7 @@ class Simulator:
         self._draw_status_label_and_indicator(
             "Ramp Status:",
             ramp_color,
-            self.x + 165 + padding_x,
+            self.x + 220 + padding_x,
             self.y + ramp_status_offset
         )
 
@@ -129,8 +133,33 @@ class Simulator:
     def _draw_offline_ui(self):
         """Draw a big red 'Disconnected' label (or you can add a red X, etc.)."""
         center_x = self.x + 170
-        center_y = self.y + 240
+        center_y = self.y + 430
 
+        
+
+        # big red X or grey overlay
+        #self.elements.append(
+        #    self.canvas.create_rectangle(
+        #        self.x, self.y,
+        #        self.x + 300, self.y + 500,
+        #        fill="grey", stipple="gray25"
+        #    )
+        #)
+        offset = 18
+        self.elements.append(
+            self.canvas.create_line(
+                self.x + 0 + offset, self.y + 60,
+                self.x + 300 + offset, self.y + 400,
+                fill="red", width=10
+            )
+        )
+        self.elements.append(
+            self.canvas.create_line(
+                self.x + 300 + offset, self.y + 60,
+                self.x + 0 + offset, self.y + 400,
+                fill="red", width=10
+            )
+        )
         self.elements.append(
             self.canvas.create_text(
                 center_x, center_y,
@@ -140,27 +169,11 @@ class Simulator:
                 anchor="center"
             )
         )
-
-        # Optionally draw a big red X or grey overlay, e.g.:
-        # self.elements.append(
-        #     self.canvas.create_rectangle(
-        #         self.x, self.y,
-        #         self.x + 300, self.y + 500,
-        #         fill="grey", stipple="gray25"
-        #     )
-        # )
-        # self.elements.append(
-        #     self.canvas.create_line(
-        #         self.x + 50, self.y + 50,
-        #         self.x + 250, self.y + 450,
-        #         fill="red", width=10
-        #     )
-        # )
         # etc.
 
     def _draw_status_label_and_indicator(self, label, color, text_x, indicator_y):
         """Helper to draw status labels and indicators."""
-        circle_x = text_x + 20  # Space between text and indicator
+        circle_x = text_x + 30  # Space between text and indicator
 
         # Draw label
         self.elements.append(
@@ -168,7 +181,7 @@ class Simulator:
                 text_x,
                 indicator_y,
                 text=label,
-                font=("Helvetica", 14),
+                font=("Helvetica", 24, "bold"),
                 fill="black",
                 anchor="e"
             )
@@ -177,12 +190,12 @@ class Simulator:
         # Draw indicator
         self.elements.append(
             self.canvas.create_oval(
-                circle_x - 10,
-                indicator_y - 10,
-                circle_x + 10,
-                indicator_y + 10,
+                circle_x - 15,
+                indicator_y - 15,
+                circle_x + 15,
+                indicator_y + 15,
                 fill=color,
                 outline="black",
-                width=2
+                width=2.5
             )
         )

@@ -71,6 +71,13 @@ def key_pressed(event):
 
 root.bind("<KeyPress>", key_pressed)
 
+def prepopulate_simulators():
+    for device_id in SIMULATOR_LAYOUT.keys():
+        add_simulator(device_id)
+
+
+prepopulate_simulators()
+
 # *** Call update_simulators once ***
 update_simulators(root, simulators, add_simulator)
 

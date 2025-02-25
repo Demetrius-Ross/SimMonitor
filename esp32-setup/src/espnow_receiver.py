@@ -24,10 +24,16 @@ print("ESP-NOW Initialized")
 
 # --- Define GPIOs for Role & ID ---
 role_pins = [machine.Pin(18, machine.Pin.IN), machine.Pin(19, machine.Pin.IN)]
+#role_pins = [machine.Pin(33, machine.Pin.IN), machine.Pin(25, machine.Pin.IN)]
 id_pins = [machine.Pin(2, machine.Pin.IN),
            machine.Pin(4, machine.Pin.IN),
            machine.Pin(16, machine.Pin.IN),
            machine.Pin(17, machine.Pin.IN)]
+
+#id_pins = [machine.Pin(26, machine.Pin.IN),
+           #machine.Pin(27, machine.Pin.IN),
+           #machine.Pin(14, machine.Pin.IN),
+           #machine.Pin(12, machine.Pin.IN)]
 
 role_value = (role_pins[0].value() << 1) | role_pins[1].value()
 roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER"}
