@@ -7,26 +7,27 @@ class Simulator:
         self.canvas = canvas
         self.images = images
 
+        # Default states
         self.ramp_state = 0
         self.motion_state = 0
 
-        # New attribute: offline
-        self.offline = False
+        # Mark as offline by default (for pre-populated simulators)
+        self.offline = True
 
         self.elements = []
 
     def update_state(self, ramp_state, motion_state):
-        """Updates ramp/motion and draws the 'Connected' UI."""
+        """Updates ramp/motion and marks the simulator as 'online' (offline=False)."""
         self.ramp_state = ramp_state
         self.motion_state = motion_state
-        self.offline = True  # Mark as connected
+        self.offline = False  # receiving data => 'online'
         self.draw()
 
         print(f"🎨 Simulator Updated: {self.name} (ID={self.device_id}), "
               f"Ramp={self.ramp_state}, Motion={self.motion_state}, offline={self.offline}")
 
     def set_offline(self, is_offline=True):
-        """Mark the simulator as offline or back online, then redraw."""
+        """Explicitly mark the simulator as offline or online, then redraw."""
         self.offline = is_offline
         self.draw()
 
@@ -34,14 +35,12 @@ class Simulator:
         print(f"🔴 Simulator {self.name} (ID={self.device_id}) => {state_str}")
 
     def draw(self):
-        # Clear old drawings
+        # 1) Clear previous drawings
         for element in self.elements:
             self.canvas.delete(element)
         self.elements.clear()
 
-        
-
-        # Layout constants
+        # 2) Layout constants
         padding_x = 50
         padding_y = 20
         title_offset = 50
@@ -50,7 +49,7 @@ class Simulator:
         ramp_status_offset = 440 + padding_y
         status_offset = 480 + padding_y
 
-        # Draw Simulator Name
+        # 3) Draw Simulator Name
         self.elements.append(
             self.canvas.create_text(
                 self.x + 120 + padding_x,
@@ -62,39 +61,53 @@ class Simulator:
             )
         )
 
-        
-
-        # Determine motion image
-        if self.motion_state == 2:  # Sim Up
+        # 4) Determine motion image
+        if self.motion_state == 2:  # "Up"
             motion_image_key = "motion_up"
-        else:                       # Sim Down
+        else:                       # "Down" or "In Motion"
             motion_image_key = "motion_down"
 
         print(f"Motion State: {self.motion_state}, Image Key: {motion_image_key}")
 
         motion_image = self.images.get(motion_image_key, None)
-        if not motion_image:
-            print(f"Warning: Image for '{motion_image_key}' not found.")
-            return
-
-        # Draw Motion Image
-        self.elements.append(
-            self.canvas.create_image(
-                self.x + 120 + padding_x,
-                self.y + image_offset,
-                anchor="center",
-                image=motion_image
+        if motion_image:
+            # Draw the motion image
+            self.elements.append(
+                self.canvas.create_image(
+                    self.x + 120 + padding_x,
+                    self.y + image_offset,
+                    anchor="center",
+                    image=motion_image
+                )
             )
-        )
+        else:
+            # If no image found, fallback text
+            print(f"Warning: Image for '{motion_image_key}' not found.")
+            self.elements.append(
+                self.canvas.create_text(
+                    self.x + 120 + padding_x,
+                    self.y + image_offset,
+                    text="No Image",
+                    font=("Helvetica", 14, "italic"),
+                    fill="gray",
+                    anchor="center"
+                )
+            )
 
-        # If offline, show a big red 'Disconnected' message
+        # 5) If offline => show big red "DISCONNECTED" overlay and return (no statuses)
         if self.offline:
             self._draw_offline_ui()
             return
 
-        # Draw Motion Status
-        # 1 = "Home" or "Down", 2 = "Up", 0 = "In Motion"
-        motion_color = "green" if self.motion_state == 1 else "red"
+        # 6) If online => draw motion/ramp statuses
+        #    Motion color: 1 => green, 2 => red, 0 => orange
+        if self.motion_state == 1:
+            motion_color = "green"
+        elif self.motion_state == 2:
+            motion_color = "red"
+        else:
+            motion_color = "orange"
+
         self._draw_status_label_and_indicator(
             "Motion Status:",
             motion_color,
@@ -102,8 +115,7 @@ class Simulator:
             self.y + motion_status_offset
         )
 
-        # Draw Ramp Status
-        # 2=Down, 1=Up, 0=InMotion => "green" if Down, "red" if Up, "orange" if InMotion
+        # 7) Ramp color: 2 => green, 1 => red, 0 => orange
         if self.ramp_state == 2:
             ramp_color = "green"
         elif self.ramp_state == 1:
@@ -118,34 +130,13 @@ class Simulator:
             self.y + ramp_status_offset
         )
 
-        # Show "Connected" in black if online
-        #self.elements.append(
-            #self.canvas.create_text(
-                #self.x + 120 + padding_x,
-                #self.y + status_offset,
-                #text="Connected",
-                #font=("Helvetica", 14),
-                #fill="black",
-                #anchor="center"
-            #)
-        #)
-
     def _draw_offline_ui(self):
-        """Draw a big red 'Disconnected' label (or you can add a red X, etc.)."""
+        """Overlay a big red 'DISCONNECTED' X on top of the simulator image."""
         center_x = self.x + 170
         center_y = self.y + 430
 
-        
-
-        # big red X or grey overlay
-        #self.elements.append(
-        #    self.canvas.create_rectangle(
-        #        self.x, self.y,
-        #        self.x + 300, self.y + 500,
-        #        fill="grey", stipple="gray25"
-        #    )
-        #)
         offset = 18
+        # Big red X
         self.elements.append(
             self.canvas.create_line(
                 self.x + 0 + offset, self.y + 60,
@@ -160,6 +151,8 @@ class Simulator:
                 fill="red", width=10
             )
         )
+
+        # "DISCONNECTED" text
         self.elements.append(
             self.canvas.create_text(
                 center_x, center_y,
@@ -169,7 +162,6 @@ class Simulator:
                 anchor="center"
             )
         )
-        # etc.
 
     def _draw_status_label_and_indicator(self, label, color, text_x, indicator_y):
         """Helper to draw status labels and indicators."""
