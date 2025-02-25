@@ -45,7 +45,7 @@ def add_simulator(device_id):
         else:
             # If device_id not in layout, default to (0,0) or skip
             col_index, row_index = (0, 0)
-        x_spacing = 160
+        x_spacing = 310
         # Now compute x,y from col,row
         # e.g. each col is 400 px wide, each row is 450 px tall
         x_pos = 10 + col_index * x_spacing
