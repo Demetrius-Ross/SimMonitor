@@ -18,6 +18,8 @@ CONFIG = {
     "BACKGROUND_COLOR": "white"
 }
 
+simulators = {}
+
 def reset_device(port):
     """Soft-reset the device using mpremote on the given port."""
     if not port:
@@ -87,7 +89,7 @@ def main():
         reset_device(actual_port)
 
     # 3) Now proceed with normal GUI setup
-    global root, canvas, simulators
+    global root, canvas
     root = tk.Tk()
     root.title("Sim Monitor v1")
     root.attributes("-fullscreen", CONFIG["FULLSCREEN"])
@@ -107,7 +109,7 @@ def main():
     logger.info("✅ Images Loaded")
 
     # Create simulators dict
-    simulators.clear()
+    #simulators = {}
 
     # Bind keys
     root.bind("<KeyPress>", key_pressed)
