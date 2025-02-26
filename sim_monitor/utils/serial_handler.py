@@ -15,6 +15,8 @@ DEBUG_MODE = False  # Set to True if you want to use the MockSerial
 SERIAL_PORT = "/dev/ttyUSB0"  # The preferred/initial port to try
 BAUD_RATE = 115200
 
+chosen_port = None
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)s:%(message)s")
 
@@ -75,6 +77,7 @@ def update_simulators(root, simulators, add_simulator,
            and pick the first one that works.
         Returns a serial object or raises an exception if none found.
         """
+        global chosen_port
         if DEBUG_MODE or serial is None:
             logger.info("Using MockSerial (Debug Mode).")
             return MockSerial()
@@ -84,6 +87,7 @@ def update_simulators(root, simulators, add_simulator,
             ser = serial.Serial(preferred_port, baud, timeout=1)
             logger.info(f"Serial port open: {ser.is_open} on {preferred_port}")
             if ser.is_open:
+                chosen_port = ser.port
                 return ser
         except Exception as e:
             logger.warning(f"Failed to open preferred port {preferred_port}: {e}")
@@ -95,6 +99,7 @@ def update_simulators(root, simulators, add_simulator,
             try:
                 ser = serial.Serial(p.device, baud, timeout=1)
                 logger.info(f"Opened fallback port: {p.device}")
+                chosen_port = ser.port
                 return ser
             except Exception as e:
                 logger.warning(f"Failed on {p.device}: {e}")

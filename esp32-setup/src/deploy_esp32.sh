@@ -51,32 +51,18 @@ echo "✅ Using ESP32 at $ESP_DEVICE"
 
 # Prompt user for action
 echo "Select an option:"
-echo "1) Deploy ESP32 script (Sender/Relay/Receiver)"
+echo "1) Deploy 'espnow-combined.py' as main.py"
 echo "2) Erase flash and install new MicroPython firmware"
 echo "3) Connect to ESP32 using minicom"
 echo "4) View logs using mpremote repl"
 echo "5) Run GPIO test script"
-echo "6) View online devices (ESP32 only)"
-echo "7) Monitor online devices from Raspberry Pi"
-read -p "Enter choice (1/2/3/4/5/6/7): " OPTION
+read -p "Enter choice (1/2/3/4/5): " OPTION
 
 case $OPTION in
     1)
-        # Deploy a specific ESP32 role
-        echo "Select the ESP32 role:"
-        echo "1) Sender"
-        echo "2) Relay"
-        echo "3) Receiver"
-        read -p "Enter choice (1/2/3): " ROLE
-
-        case $ROLE in
-            1) FILE="espnow_sender.py"; ROLE_NAME="Sender";;
-            2) FILE="espnow_relay.py"; ROLE_NAME="Relay";;
-            3) FILE="espnow_receiver.py"; ROLE_NAME="Receiver";;
-            *) echo "❌ Invalid choice. Exiting."; pause; exit 1;;
-        esac
-
-        echo "🚀 Deploying $FILE to ESP32 ($ROLE_NAME)..."
+        # Deploy the unified ESP32 script
+        FILE="espnow-combined.py"
+        echo "🚀 Deploying $FILE to ESP32 as main.py..."
 
         # Step 1: Ensure MicroPython is installed
         echo "🔍 Checking if MicroPython is installed..."
@@ -88,15 +74,17 @@ case $OPTION in
 
         # Step 2: Clean old files before flashing
         echo "🧹 Cleaning old files..."
-        mpremote connect $ESP_DEVICE fs rm -r /main.py /online-devices.py 2>/dev/null
+        mpremote connect $ESP_DEVICE fs rm -r /main.py /espnow_sender.py /espnow_receiver.py /espnow_relay.py 2>/dev/null
 
-        # Step 3: Copy necessary files to ESP32
-        echo "📂 Uploading required files..."
+        # Step 3: Copy the combined script to ESP32
+        echo "📂 Uploading espnow-combined.py as main.py..."
         mpremote connect $ESP_DEVICE fs cp $FILE :/main.py
-        mpremote connect $ESP_DEVICE fs cp gpio_test.py :
-        mpremote connect $ESP_DEVICE fs cp online-devices.py :
 
-        # Step 4: Reset ESP32
+        # Step 4: Copy gpio_test.py
+        echo "📂 Uploading gpio_test.py..."
+        mpremote connect $ESP_DEVICE fs cp gpio_test.py :gpio_test.py
+
+        # Step 5: Reset ESP32
         echo "🔄 Resetting ESP32..."
         mpremote connect $ESP_DEVICE reset
 
@@ -145,19 +133,8 @@ case $OPTION in
 
     5)
         echo "🔧 Running GPIO test..."
-        mpremote connect $ESP_DEVICE fs cp gpio_test.py :
+        mpremote connect $ESP_DEVICE fs cp gpio_test.py :gpio_test.py
         mpremote connect $ESP_DEVICE exec "import gpio_test"
-        ;;
-
-    6)
-        echo "🔎 Viewing Online Devices (ESP32)..."
-        mpremote connect $ESP_DEVICE fs cp online-devices.py :
-        mpremote connect $ESP_DEVICE exec "import online-devices"
-        ;;
-
-    7)
-        echo "🔎 Monitoring Online Devices from Raspberry Pi..."
-        python3 online-devices.py
         ;;
 
     *)
