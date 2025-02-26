@@ -7,7 +7,7 @@ import struct
 
 print("Starting unified ESP-NOW code...")
 
-# === 1) Common Initialization (Wi-Fi, ESP-NOW) ===
+# 1) Common Initialization (Wi-Fi, ESP-NOW)
 
 # Activate STA + AP
 sta = network.WLAN(network.STA_IF)
@@ -25,15 +25,14 @@ esp = espnow.ESPNow()
 esp.active(True)
 print("ESP-NOW Initialized")
 
-# === 2) Determine Role & Device ID from GPIO Pins ===
-
-# Example: Role pins on GPIO18 (bit1) & GPIO19 (bit0)
+# 2) Determine Role & Device ID from GPIO Pins
 role_pins = [machine.Pin(18, machine.Pin.IN), machine.Pin(19, machine.Pin.IN)]
-# Example: ID pins on GPIO2,4,16,17
-id_pins = [machine.Pin(2, machine.Pin.IN),
-           machine.Pin(4, machine.Pin.IN),
-           machine.Pin(16, machine.Pin.IN),
-           machine.Pin(17, machine.Pin.IN)]
+id_pins = [
+    machine.Pin(2, machine.Pin.IN),
+    machine.Pin(4, machine.Pin.IN),
+    machine.Pin(16, machine.Pin.IN),
+    machine.Pin(17, machine.Pin.IN)
+]
 
 role_value = (role_pins[0].value() << 1) | role_pins[1].value()
 roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER"}
@@ -43,7 +42,7 @@ device_id = sum(pin.value() << i for i, pin in enumerate(id_pins))
 
 print(f"[BOOT] Detected Role: {DEVICE_TYPE}, ID={device_id}")
 
-# === 3) Compute Virtual MAC & Real MAC ===
+# 3) Compute Virtual MAC & Real MAC
 mac_prefix = {"SENDER": "AC:DB:00", "RELAY": "AC:DB:01", "RECEIVER": "AC:DB:02"}
 virtual_mac = f"{mac_prefix.get(DEVICE_TYPE,'AC:DB:FF')}:{device_id:02X}:{device_id:02X}"
 real_mac_str = ubinascii.hexlify(sta.config('mac'), ':').decode()
@@ -57,7 +56,7 @@ try:
 except:
     pass
 
-# === 4) Define Shared Packet Formats (24 bytes for data/heartbeat) ===
+# 4) Define Shared Packet Formats (24 bytes for data/heartbeat)
 PACKET_FORMAT = ">16sBBHHH"
 PACKET_SIZE = struct.calcsize(PACKET_FORMAT)
 
@@ -65,13 +64,10 @@ IDENTITY_FORMAT = "16s6s"  # 22 bytes
 IDENTITY_SIZE = struct.calcsize(IDENTITY_FORMAT)
 
 
-# --------------------------------------------------
-#  SENDER LOGIC
-# --------------------------------------------------
+# SENDER LOGIC
 def run_sender():
     print("[SENDER] Starting logic...")
 
-    # Identity broadcast
     def broadcast_identity():
         padded_vmac = virtual_mac.encode()
         if len(padded_vmac) < 16:
@@ -150,7 +146,6 @@ def run_sender():
         except Exception as e:
             print("[ERROR] Exception during heartbeat send:", e)
 
-    # Keep track of prev states to avoid spamming
     prev_ramp_state = None
     prev_motion_state = None
 
@@ -166,10 +161,10 @@ def run_sender():
             send_heartbeat()
             last_heartbeat_time = time.time()
 
-        # If ramp/motion changed => send data
         current_ramp = get_ramp_state()
         current_motion = get_motion_state()
 
+        # If ramp/motion changed => send data
         if (prev_ramp_state is None or
             current_ramp != prev_ramp_state or
             current_motion != prev_motion_state):
@@ -180,13 +175,10 @@ def run_sender():
         time.sleep(2)
 
 
-# --------------------------------------------------
-#  RELAY LOGIC
-# --------------------------------------------------
+# RELAY LOGIC
 def run_relay():
     print("[RELAY] Starting logic...")
 
-    # We store known_peers with { vmac: { real_mac, hop, type } }
     known_peers = {}
     FINAL_VMAC = "AC:DB:02:01:01"
 
@@ -214,7 +206,6 @@ def run_relay():
             print(f"  {vmac} => {ubinascii.hexlify(info['real_mac'])}, hop={info['hop']}, type={info['type']}")
         print("===================")
 
-        # If final receiver known with hop<999 => direct
         if dest_vmac == FINAL_VMAC and dest_vmac in known_peers:
             info = known_peers[dest_vmac]
             if info['hop'] < 999:
@@ -228,7 +219,6 @@ def run_relay():
             else:
                 print("[WARN] No good hop to final receiver yet (hop=999)")
 
-        # Otherwise find a best relay
         best_relay = None
         best_hop = 999
         for vmac_str, peer_info in known_peers.items():
@@ -267,7 +257,6 @@ def run_relay():
         else:
             print(f"[WARN] Received packet with unexpected length: {length}")
 
-    # Attach callback
     esp.irq(on_data_recv)
     print("[RELAY] Ready to forward messages...")
 
@@ -275,13 +264,10 @@ def run_relay():
         time.sleep(1)
 
 
-# --------------------------------------------------
-#  RECEIVER LOGIC
-# --------------------------------------------------
+# RECEIVER LOGIC
 def run_receiver():
     print("[RECEIVER] Starting logic...")
 
-    # For broadcasting identity
     def broadcast_receiver_identity():
         vmac_bytes = virtual_mac.encode()
         if len(vmac_bytes) < 16:
@@ -298,12 +284,10 @@ def run_receiver():
     last_broadcast_time = time.time()
 
     while True:
-        # Periodically broadcast identity
         if time.time() - last_broadcast_time >= 30:
             broadcast_receiver_identity()
             last_broadcast_time = time.time()
 
-        # Check incoming messages
         peer, msg = esp.recv()
         if msg:
             length = len(msg)
@@ -329,7 +313,6 @@ def run_receiver():
                     vmac_bytes, rmac = struct.unpack(IDENTITY_FORMAT, msg)
                     vmac = vmac_bytes.decode().strip('\x00')
                     print(f"[IDENTITY] {vmac} => {ubinascii.hexlify(rmac).decode()}")
-                    # Optionally add peer
                     if vmac != virtual_mac:
                         if not esp.get_peer(rmac):
                             try:
@@ -345,7 +328,7 @@ def run_receiver():
         time.sleep(0.05)
 
 
-# === 5) Branch to the Correct Role ===
+# 5) Branch to the Correct Role
 if DEVICE_TYPE == "SENDER":
     run_sender()
 elif DEVICE_TYPE == "RELAY":
