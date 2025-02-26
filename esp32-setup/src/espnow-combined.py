@@ -22,11 +22,10 @@ role_value = (role_pins[0].value() << 1) | role_pins[1].value()
 roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER"}
 DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
 device_id = sum(pin.value() << i for i, pin in enumerate(id_pins))
-print(f"[BOOT] Detected Role: {DEVICE_TYPE}, ID={device_id}")
 mac_prefix = {"SENDER": "AC:DB:00", "RELAY": "AC:DB:01", "RECEIVER": "AC:DB:02"}
-virtual_mac = f"{mac_prefix.get(DEVICE_TYPE,'AC:DB:FF')}:{device_id:02X}:{device_id:02X}"
-real_mac_str = ubinascii.hexlify(sta.config('mac'), ':').decode()
-print(f"Virtual MAC: {virtual_mac}, Real MAC: {real_mac_str}\n")
+virtual_mac = f"{mac_prefix[DEVICE_TYPE]}:{device_id:02X}:{device_id:02X}"
+real_mac = ubinascii.hexlify(sta.config('mac'), ':').decode()
+print(f"\n[BOOT] Role: {DEVICE_TYPE}, ID: {device_id}, Virtual MAC: {virtual_mac}, Real MAC: {real_mac}\n")
 broadcast_mac = b'\xff\xff\xff\xff\xff\xff'
 try:
     esp.add_peer(broadcast_mac)
