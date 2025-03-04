@@ -3,3 +3,47 @@ DC-DC Converter: MUS-2405-2N
 $4.26
 4369-MUS-2405-2N-ND
 
+SMD Version:	
+(DC-DC Converter) Buck Switching Regulator IC Positive: MP2315SGJ-Z
+$2.92
+
+Schottky Diode: SS14
+$0.29
+
+(4 Channel Optocoupler) TLP291-4(GB-TP,E)
+$1.42
+
+(24v Ceramic Capacitor) CL31A226KAHNNNE 
+$0.22
+
+(5v Ceramic Capacitor) CL31B106KAHNNNE
+$0.15
+
+(Decoupling Capacitor) C1206C104K4RACTU
+Quantity: 2
+Total Price: $0.20
+
+Resistors: 
+
+Current-limiting resistors for optocoupler LEDs: CR1206-FX-2200ELF (220Ω)
+Quantity: 3
+Total Price: $0.30
+
+Pull-down resistors for ESP32 GPIOs: CR1206-FX-1002ELF (10kΩ)
+Quantity: 3
+Total Price: $0.30
+
+LED current-limiting resistors: CR1206-FX-4700ELF (470Ω)
+Quantity: 3
+Total Price: $0.30
+
+
+Rotary Switch: RDS-16S-1055-D
+$2.41
+
+or 
+DRR 3016/RTE1602V44
+$3.09/$2.94
+
+=====================================================================================================================================================
+
