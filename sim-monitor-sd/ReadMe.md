@@ -54,3 +54,5 @@ This document explains how to wire up the ESP32 with a **DC-DC buck converter, o
 - **Ensure correct polarity** for power input components.
 - **Mount capacitors close to the MP2315 regulator** for best stability.
 - **Use 10kΩ pull-downs for stable ESP32 GPIO readings.**
+
+![alt text](image.png)

@@ -37,6 +37,28 @@ LED current-limiting resistors: CR1206-FX-4700ELF (470Ω)
 Quantity: 3
 Total Price: $0.30
 
+EN Pin Resistors:
+
+RC1206FR-07220KL (220KΩ)
+$0.10
+
+CRGCQ1206F15K (15KΩ)
+$0.10
+
+FB Resistor:
+RC1206FR-07100KL (100KΩ)
+$0.10
+
+CR1206-FX-3002ELF (30KΩ)
+$0.10
+
+C1206C104K4RACTU (0.1 µF)
+$0.10
+
+Inductor:
+HPC 6045NC-4R7M
+$0.18
+
 
 Rotary Switch: RDS-16S-1055-D
 $2.41
@@ -49,3 +71,26 @@ $3.09/$2.94
 
 Cannon Plug
 RS232
+
+
+
+Component					Value for 5V Output		Purpose
+R1 (Feedback Resistor)				40.2kΩ				Sets output voltage
+R2 (Feedback Resistor)				7.5kΩ				Sets output voltage
+R3 (BST Resistor)				10Ω				Limits bootstrap current
+R4 (AAM Resistor 1)				100kΩ				Sets AAM voltage divider
+R5 (AAM Resistor 2)				20kΩ				Sets AAM voltage divider
+R6 (Optional - Additional FB Tuning Resistor)	20kΩ				Enhances transient response
+R7 (EN Voltage Divider Resistor 1)		220kΩ				Steps down 24V to ~1.5V for EN
+R8 (EN Voltage Divider Resistor 2)		15kΩ				Works with R7 to set EN voltage
+L1 (Inductor)					4.7µH - 10µH, ≥3A		Filters current and maintains switching
+C1 (Input Capacitor)				22µF 25V X5R			Stabilizes 24V input
+C1A (Input Filter Capacitor)			0.1µF				Reduces input noise
+C2 (Output Capacitor)				22µF 25V X7R			Stabilizes 5V output
+C2A (Second Output Capacitor)			22µF 25V X7R			Reduces ripple at 5V output
+C3 (BST Capacitor)				0.1µF				Provides gate drive voltage boost
+C4 (AAM Capacitor)				0.1µF				Smooths AAM voltage
+C5 (Compensation Capacitor - Optional)		33pF				Improves transient response
+D1 (Bootstrap Diode - Optional)			1N4148				Increases efficiency
+D2 (Schottky Diode)				SS14 (40V, 1A)			Provides freewheeling path for current
+
