@@ -13,13 +13,13 @@ $0.29
 (4 Channel Optocoupler) TLP291-4(GB-TP,E)
 $1.42
 
-(24v Ceramic Capacitor) CL31A226KAHNNNE 
+(24v Ceramic Capacitor) CL31A226KAHNNNE (22)
 $0.22
 
-(5v Ceramic Capacitor) CL31B106KAHNNNE
+(5v Ceramic Capacitor) CL31B106KAHNNNE 
 $0.15
 
-(Decoupling Capacitor) C1206C104K4RACTU
+(Decoupling Capacitor) C1206C104K4RACTU (0.1)
 Quantity: 2
 Total Price: $0.20
 
@@ -39,10 +39,7 @@ Total Price: $0.30
 
 EN Pin Resistors:
 
-RC1206FR-07220KL (220KΩ)
-$0.10
-
-CRGCQ1206F15K (15KΩ)
+RC1206FR-07499KL (499KΩ)
 $0.10
 
 FB Resistor:
@@ -60,6 +57,7 @@ HPC 6045NC-4R7M
 $0.18
 
 
+
 Rotary Switch: RDS-16S-1055-D
 $2.41
 
@@ -72,6 +70,8 @@ $3.09/$2.94
 Cannon Plug
 RS232
 
+
+2.2k OHM to optocoupler
 
 
 Component					Value for 5V Output		Purpose
