@@ -13572,7 +13572,7 @@
 			)
 		)
 		(property "Value" "CR1206-FX-1002ELF"
-			(at 256.794 100.33 0)
+			(at 256.032 98.044 0)
 			(effects
 				(font
 					(size 1.27 1.27)
