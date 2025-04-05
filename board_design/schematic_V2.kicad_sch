@@ -1079,6 +1079,121 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "CL31B106KAHNNNE:CL31B106KAHNNNE"
+			(pin_names
+				(offset 1.016)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "C"
+				(at 0 3.81 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left bottom)
+				)
+			)
+			(property "Value" "CL31B106KAHNNNE"
+				(at 0 -5.08 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left bottom)
+				)
+			)
+			(property "Footprint" "CL31B106KAHNNNE:CAPC3216X180N"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "CL31B106KAHNNNE_0_0"
+				(rectangle
+					(start 0 -1.905)
+					(end 0.635 1.905)
+					(stroke
+						(width 0.1)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(rectangle
+					(start 1.905 -1.905)
+					(end 2.54 1.905)
+					(stroke
+						(width 0.1)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(pin passive line
+					(at -2.54 0 0)
+					(length 2.54)
+					(name "~"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 5.08 0 180)
+					(length 2.54)
+					(name "~"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "CR1206-FX-1002ELF:CR1206-FX-1002ELF"
 			(pin_names
 				(offset 1.016)
@@ -7434,6 +7549,12 @@
 		(uuid "5b7d0881-8e1c-4a7d-9ded-80f148a9e9f6")
 	)
 	(junction
+		(at 115.57 148.59)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "63dde347-ce8a-47a4-8726-983be80376d9")
+	)
+	(junction
 		(at 167.64 73.66)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -7843,6 +7964,16 @@
 	)
 	(wire
 		(pts
+			(xy 115.57 148.59) (xy 111.76 148.59)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "134c0158-72e7-42fc-89dd-fecbc153ff2c")
+	)
+	(wire
+		(pts
 			(xy 267.97 24.13) (xy 267.97 26.67)
 		)
 		(stroke
@@ -7933,6 +8064,16 @@
 	)
 	(wire
 		(pts
+			(xy 115.57 173.99) (xy 115.57 148.59)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "22c0251d-02cb-4242-8ca3-a2dd04498211")
+	)
+	(wire
+		(pts
 			(xy 156.21 78.74) (xy 194.31 78.74)
 		)
 		(stroke
@@ -7980,6 +8121,26 @@
 			(type default)
 		)
 		(uuid "2ac99e00-fec6-4e5e-97c4-e843ef6c626b")
+	)
+	(wire
+		(pts
+			(xy 74.93 173.99) (xy 92.71 173.99)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2f0dcc8f-7209-4afc-bd36-39ee250445e4")
+	)
+	(wire
+		(pts
+			(xy 74.93 173.99) (xy 74.93 151.13)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2fa2b01f-6681-4ecd-a5bf-0c1fa1cede7f")
 	)
 	(wire
 		(pts
@@ -8113,13 +8274,23 @@
 	)
 	(wire
 		(pts
-			(xy 283.21 148.59) (xy 111.76 148.59)
+			(xy 283.21 148.59) (xy 115.57 148.59)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
 		(uuid "517a6cd5-c586-4632-8fcd-99df76af6ee9")
+	)
+	(wire
+		(pts
+			(xy 100.33 173.99) (xy 115.57 173.99)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "59f12e40-9c83-4bca-b7cc-f2cb744c984d")
 	)
 	(wire
 		(pts
@@ -9454,6 +9625,75 @@
 		)
 	)
 	(symbol
+		(lib_id "CL31B106KAHNNNE:CL31B106KAHNNNE")
+		(at 95.25 173.99 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "2ff11daa-2920-440d-9b23-0da1c5ca9739")
+		(property "Reference" "C3"
+			(at 96.52 167.64 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "1000pf/3kV"
+			(at 96.52 170.18 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "CL31B106KAHNNNE:CAPC3216X180N"
+			(at 95.25 173.99 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 95.25 173.99 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 95.25 173.99 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "f9ac6ec9-13a2-4ce4-ae04-79ce969d524a")
+		)
+		(pin "2"
+			(uuid "eb1b09e8-ebf4-43e2-b95e-3dacd70728c0")
+		)
+		(instances
+			(project ""
+				(path "/1521a3d4-d148-4383-b633-021e5ea56970"
+					(reference "C3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "CR1206-FX-1002ELF:CR1206-FX-1002ELF")
 		(at 184.15 31.75 90)
 		(unit 1)
@@ -10148,7 +10388,7 @@
 			)
 		)
 		(property "Value" "UHE2A470MPD"
-			(at 63.5 140.716 90)
+			(at 69.596 140.716 90)
 			(effects
 				(font
 					(size 1.524 1.524)
@@ -11963,7 +12203,7 @@
 		(dnp no)
 		(uuid "f4f1c54b-7f4c-4939-a6e4-3855dce7d4b2")
 		(property "Reference" "C2"
-			(at 74.93 154.178 90)
+			(at 74.93 138.176 90)
 			(effects
 				(font
 					(size 1.524 1.524)
@@ -11976,6 +12216,7 @@
 				(font
 					(size 1.524 1.524)
 				)
+				(hide yes)
 			)
 		)
 		(property "Footprint" "PCAP_10x12_5-THRU-ELECT_NCA"
