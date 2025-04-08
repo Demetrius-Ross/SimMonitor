@@ -11094,7 +11094,7 @@
 				)
 			)
 		)
-		(property "Footprint" "footprints:PCAP_10x12_5-THRU-ELECT_NCA"
+		(property "Footprint" "footprints:PTC_RESET_FUSE"
 			(at 179.07 148.59 0)
 			(effects
 				(font
@@ -12881,7 +12881,7 @@
 				)
 			)
 		)
-		(property "Footprint" "footprints:PCAP_10x12_5-THRU-ELECT_NCA"
+		(property "Footprint" "footprints:PTC_RESET_FUSE"
 			(at 100.33 148.59 0)
 			(effects
 				(font
