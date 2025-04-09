@@ -51,9 +51,9 @@ def run_sender():
     seq_counter = 0
     last_identity_time = time.time()
     last_heartbeat_time = time.time()
-    RAMP_UP_PIN = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN)
+    RAMP_UP_PIN = machine.Pin(26, machine.Pin.IN, machine.Pin.PULL_DOWN)
     RAMP_DOWN_PIN = machine.Pin(27, machine.Pin.IN, machine.Pin.PULL_DOWN)
-    SIM_HOME_PIN = machine.Pin(26, machine.Pin.IN, machine.Pin.PULL_DOWN)
+    SIM_HOME_PIN = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN)
     def get_ramp_state():
         ramp_up = RAMP_UP_PIN.value()
         ramp_down = RAMP_DOWN_PIN.value()
