@@ -1,4 +1,4 @@
-24768706032224446
+24772194938273668
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -1658,6 +1658,13 @@ switch tactile SPST 1P1T straight NO SMTR C&K
 0
 2
 2
+Button_Switch_SMD
+Untitled
+
+
+0
+0
+0
 Button_Switch_THT
 KSA_Tactile_SPST
 KSA http://www.ckswitches.com/media/1457/ksa_ksl.pdf
@@ -99644,3 +99651,10 @@ SOIC254P1016X460-16N
 0
 16
 16
+footprints
+SW
+Resistor SMD 2816 (7142 Metric), square (rectangular) end terminal, IPC_7351 nominal with elongated pad for handsoldering. (Body size from: https://www.vishay.com/docs/30100/wsl.pdf), generated with kicad-footprint-generator
+resistor handsolder
+0
+2
+2
