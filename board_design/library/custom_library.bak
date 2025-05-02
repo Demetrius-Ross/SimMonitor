@@ -2211,7 +2211,7 @@
 					)
 				)
 			)
-			(pin power_out line
+			(pin power_in line
 				(at 15.24 0 180)
 				(length 5.08)
 				(name "-VOUT"
@@ -2780,21 +2780,19 @@
 		(in_bom yes)
 		(on_board yes)
 		(property "Reference" "D1"
-			(at 10.16 7.112 0)
+			(at 5.08 -6.35 0)
 			(effects
 				(font
 					(size 1.524 1.524)
 				)
-				(justify right)
 			)
 		)
 		(property "Value" "SS34B-HF"
-			(at 10.922 4.318 0)
+			(at 5.08 -3.81 0)
 			(effects
 				(font
 					(size 1.524 1.524)
 				)
-				(justify right)
 			)
 		)
 		(property "Footprint" "footprints:DO214AASMB_CIP-L"
