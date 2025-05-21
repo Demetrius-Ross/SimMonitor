@@ -13,10 +13,10 @@ esp = espnow.ESPNow()
 esp.active(True)
 role_pins = [machine.Pin(18, machine.Pin.IN), machine.Pin(19, machine.Pin.IN)]
 id_pins = [
-    machine.Pin(2, machine.Pin.IN),
     machine.Pin(4, machine.Pin.IN),
     machine.Pin(16, machine.Pin.IN),
-    machine.Pin(17, machine.Pin.IN)
+    machine.Pin(17, machine.Pin.IN),
+    machine.Pin(5, machine.Pin.IN)
 ]
 role_value = (role_pins[0].value() << 1) | role_pins[1].value()
 roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER"}
@@ -51,9 +51,9 @@ def run_sender():
     seq_counter = 0
     last_identity_time = time.time()
     last_heartbeat_time = time.time()
-    RAMP_UP_PIN = machine.Pin(26, machine.Pin.IN, machine.Pin.PULL_DOWN)
-    RAMP_DOWN_PIN = machine.Pin(27, machine.Pin.IN, machine.Pin.PULL_DOWN)
-    SIM_HOME_PIN = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN)
+    RAMP_UP_PIN = machine.Pin(33, machine.Pin.IN, machine.Pin.PULL_DOWN)
+    RAMP_DOWN_PIN = machine.Pin(25, machine.Pin.IN, machine.Pin.PULL_DOWN)
+    SIM_HOME_PIN = machine.Pin(26, machine.Pin.IN, machine.Pin.PULL_DOWN)
     def get_ramp_state():
         ramp_up = RAMP_UP_PIN.value()
         ramp_down = RAMP_DOWN_PIN.value()
