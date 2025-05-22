@@ -16,7 +16,7 @@ id_pins = [
     machine.Pin(4, machine.Pin.IN),
     machine.Pin(16, machine.Pin.IN),
     machine.Pin(17, machine.Pin.IN),
-    machine.Pin(5, machine.Pin.IN)
+    machine.Pin(5, machine.Pin.IN, machine.Pin.PULL_DOWN)
 ]
 role_value = (role_pins[0].value() << 1) | role_pins[1].value()
 roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER"}

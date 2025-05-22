@@ -4,7 +4,7 @@ import network
 
 # === Define GPIO Pins for Role & ID Assignment ===
 role_pins = [machine.Pin(18, machine.Pin.IN), machine.Pin(19, machine.Pin.IN)]
-id_pins = [machine.Pin(2, machine.Pin.IN), machine.Pin(4, machine.Pin.IN), machine.Pin(16, machine.Pin.IN), machine.Pin(17, machine.Pin.IN)]
+id_pins = [machine.Pin(4, machine.Pin.IN), machine.Pin(16, machine.Pin.IN), machine.Pin(17, machine.Pin.IN), machine.Pin(5, machine.Pin.IN)]
 
 # === Read Device Role from GPIO ===
 role_value = (role_pins[0].value() << 1) | role_pins[1].value()
@@ -36,7 +36,7 @@ if DEVICE_TYPE == "UNKNOWN":
     print("[ERROR] Invalid role configuration! Check GPIO wiring for role selection.")
     print("[INFO] Ensure GPIO18 & GPIO19 are correctly wired for role selection.")
 elif device_id == 0:
-    print("[WARNING] Device ID is 0. Verify GPIO2, GPIO4, GPIO16, and GPIO17 connections.")
+    print("[WARNING] Device ID is 0. Verify GPIO4, GPI16, GPIO17, and GPIO5 connections.")
 
 print("[INFO] If all values are correct, proceed with ESP-NOW communication.")
 
