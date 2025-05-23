@@ -11,7 +11,7 @@ except ImportError:
     # If you want the scanning logic to work, install pyserial on your Pi:
     #   pip install pyserial
 
-DEBUG_MODE = False  # Set to True if you want to use the MockSerial
+DEBUG_MODE = True  # Set to True if you want to use the MockSerial
 SERIAL_PORT = "/dev/ttyUSB0"  # The preferred/initial port to try
 BAUD_RATE = 115200
 
@@ -47,10 +47,36 @@ def update_simulators(root, simulators, add_simulator,
         """Mock for debug mode, simulating incoming lines."""
         def __init__(self):
             self.lines = [
+                #AS-350
                 b"[DATA] Received from Sender ID 1: RampState=2, MotionState=1, Seq=54\n",
-                b"[HEARTBEAT] Received from Sender ID 1: RampState=2, MotionState=1, Seq=99\n",
+                b"[HEARTBEAT] Received from Sender ID 1: RampState=2, MotionState=1, Seq=99\n"
+                #B-407,
                 b"[DATA] Received from Sender ID 2: RampState=0, MotionState=2, Seq=100\n",
                 b"[HEARTBEAT] Received from Sender ID 2: RampState=2, MotionState=1, Seq=99\n",
+                #EC-130,
+                b"[DATA] Received from Sender ID 3: RampState=0, MotionState=2, Seq=100\n",
+                b"[HEARTBEAT] Received from Sender ID 3: RampState=2, MotionState=1, Seq=99\n",
+                #B-407,
+                b"[DATA] Received from Sender ID 4: RampState=0, MotionState=2, Seq=100\n",
+                b"[HEARTBEAT] Received from Sender ID 4: RampState=2, MotionState=1, Seq=99\n",
+                #B-407,
+                b"[DATA] Received from Sender ID 5: RampState=0, MotionState=2, Seq=100\n",
+                b"[HEARTBEAT] Received from Sender ID 5: RampState=2, MotionState=1, Seq=99\n",
+                #PC-12,
+                b"[DATA] Received from Sender ID 6: RampState=0, MotionState=2, Seq=100\n",
+                b"[HEARTBEAT] Received from Sender ID 6: RampState=2, MotionState=1, Seq=99\n",
+                #PC-12,
+                b"[DATA] Received from Sender ID 7: RampState=0, MotionState=2, Seq=100\n",
+                b"[HEARTBEAT] Received from Sender ID 7: RampState=2, MotionState=1, Seq=99\n",
+                #PC-12,
+                b"[DATA] Received from Sender ID 8: RampState=0, MotionState=2, Seq=100\n",
+                b"[HEARTBEAT] Received from Sender ID 8: RampState=2, MotionState=1, Seq=99\n",
+                #PC-12,
+                b"[DATA] Received from Sender ID 9: RampState=0, MotionState=2, Seq=100\n",
+                b"[HEARTBEAT] Received from Sender ID 9: RampState=2, MotionState=1, Seq=99\n",
+                #PC-12,
+                b"[DATA] Received from Sender ID 10: RampState=0, MotionState=2, Seq=100\n",
+                b"[HEARTBEAT] Received from Sender ID 10: RampState=2, MotionState=1, Seq=99\n",
                 # ... add more lines if desired
             ]
             self.index = 0
