@@ -11,7 +11,7 @@ except ImportError:
     # If you want the scanning logic to work, install pyserial on your Pi:
     #   pip install pyserial
 
-DEBUG_MODE = True  # Set to True if you want to use the MockSerial
+DEBUG_MODE = False  # Set to True if you want to use the MockSerial
 SERIAL_PORT = "/dev/ttyUSB0"  # The preferred/initial port to try
 BAUD_RATE = 115200
 
