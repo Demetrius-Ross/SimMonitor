@@ -1,11 +1,13 @@
 class Simulator:
-    def __init__(self, device_id, name, x, y, canvas, images):
+    def __init__(self, device_id, name, x, y, canvas, images, scale=1.0):
         self.device_id = device_id
         self.name = name
         self.x = x
         self.y = y
         self.canvas = canvas
         self.images = images
+        self.scale = scale
+
 
         # Default states
         self.ramp_state = 0
@@ -39,23 +41,24 @@ class Simulator:
         for element in self.elements:
             self.canvas.delete(element)
         self.elements.clear()
+        
 
         # 2) Layout constants
-        padding_x = 50
-        padding_y = 20
-        title_offset = 50
-        image_offset = 240
-        motion_status_offset = 400 + padding_y
-        ramp_status_offset = 440 + padding_y
-        status_offset = 480 + padding_y
+        scale = self.scale
+        padding_x = int(50 * scale)
+        padding_y = int(20 * scale)
+        title_offset = int(50 * scale)
+        image_offset = int(240 * scale)
+        motion_status_offset = int(400 * scale + padding_y)
+        ramp_status_offset = int(440 * scale + padding_y)
 
         # 3) Draw Simulator Name
         self.elements.append(
             self.canvas.create_text(
-                self.x + 120 + padding_x,
+                self.x + int(120 * scale) + padding_x,
                 self.y + title_offset,
                 text=self.name,
-                font=("Helvetica", 28, "bold"),
+                font=("Helvetica", int(28 * scale), "bold"),
                 fill="black",
                 anchor="center"
             )
@@ -74,7 +77,7 @@ class Simulator:
             # Draw the motion image
             self.elements.append(
                 self.canvas.create_image(
-                    self.x + 120 + padding_x,
+                    self.x + int(120 * scale) + padding_x,
                     self.y + image_offset,
                     anchor="center",
                     image=motion_image
@@ -85,10 +88,10 @@ class Simulator:
             print(f"Warning: Image for '{motion_image_key}' not found.")
             self.elements.append(
                 self.canvas.create_text(
-                    self.x + 120 + padding_x,
+                    self.x + int(120 * scale) + padding_x,
                     self.y + image_offset,
                     text="No Image",
-                    font=("Helvetica", 14, "italic"),
+                    font=("Helvetica", int(14 * scale), "italic"),
                     fill="gray",
                     anchor="center"
                 )
@@ -111,7 +114,7 @@ class Simulator:
         self._draw_status_label_and_indicator(
             "Motion Status:",
             motion_color,
-            self.x + 220 + padding_x,
+            self.x + int(220 * scale) + padding_x,
             self.y + motion_status_offset
         )
 
@@ -126,68 +129,62 @@ class Simulator:
         self._draw_status_label_and_indicator(
             "Ramp Status:",
             ramp_color,
-            self.x + 220 + padding_x,
+            self.x + int(220 * scale) + padding_x,
             self.y + ramp_status_offset
         )
 
     def _draw_offline_ui(self):
-        """Overlay a big red 'DISCONNECTED' X on top of the simulator image."""
-        center_x = self.x + 170
-        center_y = self.y + 430
+        scale = self.scale
+        center_x = self.x + int(170 * scale)
+        center_y = self.y + int(430 * scale)
+        offset = int(18 * scale)
 
-        offset = 18
-        # Big red X
         self.elements.append(
             self.canvas.create_line(
-                self.x + 0 + offset, self.y + 60,
-                self.x + 300 + offset, self.y + 400,
-                fill="red", width=10
+                self.x + offset, self.y + int(60 * scale),
+                self.x + int(300 * scale) + offset, self.y + int(400 * scale),
+                fill="red", width=int(10 * scale)
             )
         )
         self.elements.append(
             self.canvas.create_line(
-                self.x + 300 + offset, self.y + 60,
-                self.x + 0 + offset, self.y + 400,
-                fill="red", width=10
+                self.x + int(300 * scale) + offset, self.y + int(60 * scale),
+                self.x + offset, self.y + int(400 * scale),
+                fill="red", width=int(10 * scale)
             )
         )
-
-        # "DISCONNECTED" text
         self.elements.append(
             self.canvas.create_text(
                 center_x, center_y,
                 text="DISCONNECTED",
-                font=("Helvetica", 24, "bold"),
+                font=("Helvetica", int(24 * scale), "bold"),
                 fill="red",
                 anchor="center"
             )
         )
 
     def _draw_status_label_and_indicator(self, label, color, text_x, indicator_y):
-        """Helper to draw status labels and indicators."""
-        circle_x = text_x + 30  # Space between text and indicator
+        scale = self.scale
+        circle_x = text_x + int(30 * scale)
 
-        # Draw label
         self.elements.append(
             self.canvas.create_text(
                 text_x,
                 indicator_y,
                 text=label,
-                font=("Helvetica", 24, "bold"),
+                font=("Helvetica", int(24 * scale), "bold"),
                 fill="black",
                 anchor="e"
             )
         )
-
-        # Draw indicator
         self.elements.append(
             self.canvas.create_oval(
-                circle_x - 15,
-                indicator_y - 15,
-                circle_x + 15,
-                indicator_y + 15,
+                circle_x - int(15 * scale),
+                indicator_y - int(15 * scale),
+                circle_x + int(15 * scale),
+                indicator_y + int(15 * scale),
                 fill=color,
                 outline="black",
-                width=2.5
+                width=int(2.5 * scale)
             )
         )
