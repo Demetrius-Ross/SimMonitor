@@ -105,7 +105,7 @@ def main():
 
     # Load images
     global images
-    images = load_images()
+    images = load_images(SCALE)
     logger.info("✅ Images Loaded")
 
     # Bind key events
