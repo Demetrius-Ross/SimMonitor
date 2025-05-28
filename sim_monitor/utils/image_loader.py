@@ -15,7 +15,7 @@ def load_images(scale=1.0):
     }
 
     # Apply scaling to image dimensions
-    base_size = 320  # original size
+    base_size = 280  # original size
     scaled_size = int(base_size * scale)
 
     images = {}
