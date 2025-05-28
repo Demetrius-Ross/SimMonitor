@@ -93,8 +93,8 @@ def main():
     # Screen dimensions and scaling
     screenx = root.winfo_screenwidth()
     screeny = root.winfo_screenheight()
-    BASE_WIDTH = 1280
-    BASE_HEIGHT = 720
+    BASE_WIDTH = 1920
+    BASE_HEIGHT = 1080
     SCALE_X = screenx / BASE_WIDTH
     SCALE_Y = screeny / BASE_HEIGHT
     SCALE = min(SCALE_X, SCALE_Y)
