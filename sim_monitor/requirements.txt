@@ -1,2 +1,3 @@
 Pillow
 pyserial
+PyQt5
