@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QMenu, QMessageBox, QFileDialog                              
 )
 from PyQt5.QtGui import QFont, QIcon, QPixmap
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QTime, QDate
 
 from edit_layout_dialog import EditLayoutDialog
 from utils.simulator_map import SIMULATOR_MAP, SIMULATOR_LAYOUT
@@ -111,6 +111,18 @@ class MainWindow(QMainWindow):
         self.mode_label.setFont(QFont("Arial", 12))
         self.mode_label.setStyleSheet("color: white;")
 
+        self.clock_label = QLabel()
+        clock_font = QFont("Arial", 18, QFont.Normal, italic=True)
+        self.clock_label.setFont(clock_font)
+        self.clock_label.setStyleSheet("color:white;")
+        self.clock_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+        self.date_label = QLabel()
+        date_font = QFont("Arial", 18, QFont.Normal, italic=True)
+        self.date_label.setFont(date_font)
+        self.date_label.setStyleSheet("color:white;")
+        self.date_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
         # --- SETTINGS (gear) button ----------------
         self.settings_btn = QPushButton()
         gear_icon = QIcon.fromTheme("preferences-system")
@@ -124,7 +136,12 @@ class MainWindow(QMainWindow):
         header_layout.addWidget(logo_label)
         header_layout.addStretch()
         header_layout.addWidget(self.mode_label)
-        header_layout.addSpacing(20)
+        #header_layout.addSpacing(0)
+        header_layout.addWidget(self.clock_label)
+        header_layout.addWidget(self.date_label)
+        #header_layout.addSpacing(1)
+        
+        #header_layout.addSpacing(0)
         header_layout.addWidget(self.settings_btn)
 
         # ---------- SIMULATOR GRID ----------
@@ -143,6 +160,12 @@ class MainWindow(QMainWindow):
         main_layout.addLayout(self.grid_layout)
         QTimer.singleShot(0, self.rebuild_simulator_grid)
 
+
+        self.update_datetime()
+        timer = QTimer(self)
+        timer.timeout.connect(self.update_datetime)
+        timer.start(1000)
+
         # Start serial monitoring
         self.apply_debug_mode(self.debug_mode, persist=False)
 
@@ -151,6 +174,7 @@ class MainWindow(QMainWindow):
             update_sim_fn=self.update_simulator_state,
             mark_offline_fn=self.set_simulator_offline
         )
+
 
     def update_simulator_state(self, sim_id, motion, ramp):
         if sim_id in self.simulator_cards:
@@ -310,6 +334,14 @@ class MainWindow(QMainWindow):
             self.build_name_fields()
         except Exception as ex:
             QMessageBox.warning(self, "Load Failed", f"Could not load file:\n{ex}")
+
+    def update_datetime(self):
+        now=QTime.currentTime()
+        today=QDate.currentDate()
+        date_str = today.toString("ddd dd MMM yyyy")
+        time_str=now.toString("HH:mm:ss AP")
+        self.date_label.setText(date_str)
+        self.clock_label.setText(time_str)
 
 
 
