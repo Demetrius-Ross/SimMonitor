@@ -78,7 +78,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("FlightSafety Simulator Monitor")
         self.setStyleSheet("background-color: white;")
         screen_h = QApplication.primaryScreen().size().height()
-        self.ui_scale = max(2.0, screen_h / 1080)
+        self.ui_scale = max(2.0, screen_h / 1080) # CHANGE SCALE HERE
         self.is_fullscreen = True
         self.simulator_cards = {}
 
@@ -109,7 +109,7 @@ class MainWindow(QMainWindow):
         header_layout.setContentsMargins(0, 0, 0, 0)
 
         logo_label = QLabel()
-        logo_pixmap = QPixmap("images/FlightSafety_Logo-white.png")
+        logo_pixmap = QPixmap("images/FlightSafety_Logo-white.PNG")
         pmap = int(120* self.ui_scale)
         logo_pixmap = logo_pixmap.scaledToHeight(pmap, Qt.SmoothTransformation)
         logo_label.setPixmap(logo_pixmap)

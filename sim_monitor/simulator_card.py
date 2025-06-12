@@ -54,7 +54,7 @@ class SimulatorCard(QWidget):
         # Title
         self.title = QLabel(self.name)
         self.title.setAlignment(Qt.AlignCenter)
-        self.title.setFont(QFont("Arial", int(18*self.scale), QFont.Bold))
+        self.title.setFont(QFont("Arial", int(28*self.scale), QFont.Bold))
         card_layout.addWidget(self.title)
 
         # Image (maximized)
