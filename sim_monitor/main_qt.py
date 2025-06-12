@@ -114,7 +114,7 @@ class MainWindow(QMainWindow):
         self.logo_label = QLabel()
         logo_pixmap = QPixmap("images/fs-logo.png")
         pmap = int(120* self.ui_scale)
-        logo_pixmap = logo_pixmap.scaledToHeight(120, Qt.SmoothTransformation)
+        logo_pixmap = logo_pixmap.scaledToHeight(pmap, Qt.SmoothTransformation)
         self.logo_label.setPixmap(logo_pixmap)
         #logo_label.setStyleSheet("margin-left: 10px;")
         self.logo_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -148,9 +148,10 @@ class MainWindow(QMainWindow):
 
         self.settings_btn.clicked.connect(self.open_settings)
         
+        header_layout.addWidget(self.logo_label)
         header_layout.addStretch()
         header_layout.addWidget(self.mode_label)
-        header_layout.addWidget(self.logo_label)
+        
         #header_layout.addSpacing(0)
         header_layout.addWidget(self.clock_label)
         header_layout.addWidget(self.date_label)
