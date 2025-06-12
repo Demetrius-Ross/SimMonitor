@@ -111,12 +111,13 @@ class MainWindow(QMainWindow):
         header_layout = QHBoxLayout(header_frame)
         header_layout.setContentsMargins(0, 0, 0, 0)
 
-        logo_label = QLabel()
+        self.logo_label = QLabel()
         logo_pixmap = QPixmap("images/fs-logo.png")
         pmap = int(120* self.ui_scale)
         logo_pixmap = logo_pixmap.scaledToHeight(120, Qt.SmoothTransformation)
-        logo_label.setPixmap(logo_pixmap)
-        logo_label.setStyleSheet("margin-left: 10px;")
+        self.logo_label.setPixmap(logo_pixmap)
+        #logo_label.setStyleSheet("margin-left: 10px;")
+        self.logo_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         font_size1 = int(12*self.ui_scale)
         self.mode_label = QLabel("MODE: DEBUG")
@@ -148,8 +149,8 @@ class MainWindow(QMainWindow):
         self.settings_btn.clicked.connect(self.open_settings)
         
         header_layout.addStretch()
-        header_layout.addWidget(logo_label)
         header_layout.addWidget(self.mode_label)
+        header_layout.addWidget(self.logo_label)
         #header_layout.addSpacing(0)
         header_layout.addWidget(self.clock_label)
         header_layout.addWidget(self.date_label)
