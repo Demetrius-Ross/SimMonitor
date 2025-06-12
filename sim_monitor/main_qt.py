@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QMenu, QMessageBox, QFileDialog                              
 )
 from PyQt5.QtGui import QFont, QIcon, QPixmap
-from PyQt5.QtCore import Qt, QTimer, QTime, QDate
+from PyQt5.QtCore import Qt, QTimer, QTime, QDate, QCoreApplication
 
 from edit_layout_dialog import EditLayoutDialog
 from utils.simulator_map import SIMULATOR_MAP, SIMULATOR_LAYOUT
@@ -21,6 +21,9 @@ from utils.layout_io import write_layout, read_layout
 
 NUM_SIMULATORS = 12
 COLUMNS = 6
+os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"]= "0"
+os.environ["QT_SCALE_FACTOR"] = "1"
+QCoreApplication.setAttribute(Qt.AA_DisableHighDpiScaling)
 
 class GearButton(QPushButton):
     def __init__(self, icon: QIcon, parent=None):
