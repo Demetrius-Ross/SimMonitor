@@ -21,9 +21,9 @@ from utils.layout_io import write_layout, read_layout
 
 NUM_SIMULATORS = 12
 COLUMNS = 6
-os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"]= "0"
-os.environ["QT_SCALE_FACTOR"] = "1"
-QCoreApplication.setAttribute(Qt.AA_DisableHighDpiScaling)
+#os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"]= "0"
+#os.environ["QT_SCALE_FACTOR"] = "1"
+#QCoreApplication.setAttribute(Qt.AA_DisableHighDpiScaling)
 
 class GearButton(QPushButton):
     def __init__(self, icon: QIcon, parent=None):
@@ -55,7 +55,7 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Settings")
         self.setModal(True)
-        self.setFixedWidth(380)
+        #self.setFixedWidth(380)
 
         # --- Example option --------------------
         form = QFormLayout()
@@ -77,8 +77,11 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("FlightSafety Simulator Monitor")
         self.setStyleSheet("background-color: white;")
+        screen_h = QApplication.primaryScreen().size().height()
+        self.ui_scale = max(2.0, screen_h / 1080)
         self.is_fullscreen = True
         self.simulator_cards = {}
+
 
         # -- Central Widget --
         central_widget = QWidget()
@@ -95,10 +98,11 @@ class MainWindow(QMainWindow):
 
 
         # ---------- HEADER ----------
+        bar_h = int(90 * self.ui_scale)
         header_frame = QFrame()
-        header_frame.setMinimumHeight(90)
-        header_frame.setMaximumHeight(90)
-        header_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        header_frame.setMinimumHeight(bar_h)
+        header_frame.setMaximumHeight(bar_h)
+        #header_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         header_frame.setStyleSheet("background-color: #081D33; padding: 0px 40px;")
 
         header_layout = QHBoxLayout(header_frame)
@@ -106,22 +110,25 @@ class MainWindow(QMainWindow):
 
         logo_label = QLabel()
         logo_pixmap = QPixmap("images/FlightSafety_Logo-white.png")
-        logo_pixmap = logo_pixmap.scaledToHeight(120, Qt.SmoothTransformation)
+        pmap = int(120* self.ui_scale)
+        logo_pixmap = logo_pixmap.scaledToHeight(pmap, Qt.SmoothTransformation)
         logo_label.setPixmap(logo_pixmap)
         logo_label.setStyleSheet("margin-left: 10px;")
 
+        font_size1 = int(12*self.ui_scale)
         self.mode_label = QLabel("MODE: DEBUG")
-        self.mode_label.setFont(QFont("Arial", 12))
+        self.mode_label.setFont(QFont("Arial", font_size1))
         self.mode_label.setStyleSheet("color: white;")
 
+        font_size2 = int(18*self.ui_scale)
         self.clock_label = QLabel()
-        clock_font = QFont("Arial", 18, QFont.Normal, italic=True)
+        clock_font = QFont("Arial", font_size2, QFont.Normal, italic=True)
         self.clock_label.setFont(clock_font)
         self.clock_label.setStyleSheet("color:white;")
         self.clock_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         self.date_label = QLabel()
-        date_font = QFont("Arial", 18, QFont.Normal, italic=True)
+        date_font = QFont("Arial", font_size2, QFont.Normal, italic=True)
         self.date_label.setFont(date_font)
         self.date_label.setStyleSheet("color:white;")
         self.date_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -149,8 +156,11 @@ class MainWindow(QMainWindow):
 
         # ---------- SIMULATOR GRID ----------
         self.grid_layout = QGridLayout()
-        self.grid_layout.setSpacing(8)
-        self.grid_layout.setContentsMargins(10, 10, 10, 130)
+        grid_size = int(8*self.ui_scale)
+        self.grid_layout.setSpacing(grid_size)
+        margin = int(10*self.ui_scale)
+        bottom = int(130*self.ui_scale)
+        self.grid_layout.setContentsMargins(margin, margin, margin, bottom)
 
         for sim_id, (col, row) in SIMULATOR_LAYOUT.items():
             name = SIMULATOR_MAP.get(sim_id, f"SIM-{sim_id}")
@@ -290,8 +300,8 @@ class MainWindow(QMainWindow):
 
     def rebuild_simulator_grid(self):
         # Remove old cards from layout + dict
-        for card in self.simulator_cards.values():
-            card.setParent(None)
+        for sim_card in self.simulator_cards.values():
+            sim_card.setParent(None)
         self.simulator_cards.clear()
 
         # Re-add based on updated SIMULATOR_LAYOUT
@@ -301,9 +311,10 @@ class MainWindow(QMainWindow):
         self.grid_layout.setColumnStretch(cols, 1)
 
         for sim_id, (col, row) in SIMULATOR_LAYOUT.items():
-            card = SimulatorCard(sim_id, SIMULATOR_MAP.get(sim_id))
-            self.simulator_cards[sim_id] = card
-            self.grid_layout.addWidget(card, row, col)
+            name = SIMULATOR_MAP.get(sim_id, f"SIM-{sim_id}")
+            sim_card = SimulatorCard(sim_id, name, scale=self.ui_scale)
+            self.simulator_cards[sim_id] = sim_card
+            self.grid_layout.addWidget(sim_card, row, col)
 
     def apply_debug_mode(self, enabled: bool, *, persist=True):
         """Update global serial handler, UI label, and config."""

@@ -13,7 +13,7 @@ SIM_IMAGES = {
 }
 
 class SimulatorCard(QWidget):
-    def __init__(self, sim_id, name=None):
+    def __init__(self, sim_id, name=None,*,scale: float = 1.0):
         super().__init__()
 
         self.sim_id = sim_id
@@ -21,11 +21,12 @@ class SimulatorCard(QWidget):
         self.motion_state = 0
         self.ramp_state = 0
         self.offline = True
+        self.scale = scale
 
-        self.setFixedSize(310, 420)
+        self.setFixedSize(int(310*self.scale), int(420*self.scale))
 
         outer_layout = QVBoxLayout(self)
-        outer_layout.setContentsMargins(10, 10, 10, 10)
+        outer_layout.setContentsMargins(int(10*self.scale), int(10*self.scale), int(10*self.scale), int(10*self.scale))
         outer_layout.setAlignment(Qt.AlignCenter)
 
         # Card container
@@ -39,21 +40,21 @@ class SimulatorCard(QWidget):
             }
         """)
         card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(12, 12, 12, 12)
-        card_layout.setSpacing(12)
+        card_layout.setContentsMargins(int(12*self.scale), int(12*self.scale), int(12*self.scale), int(12*self.scale))
+        card_layout.setSpacing(int(12*self.scale))
         card_layout.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
 
         # Drop shadow
         shadow = QGraphicsDropShadowEffect(self)
-        shadow.setOffset(0, 3)
-        shadow.setBlurRadius(14)
+        shadow.setOffset(0, int(3*self.scale))
+        shadow.setBlurRadius(int(14*self.scale))
         shadow.setColor(Qt.gray)
         card.setGraphicsEffect(shadow)
 
         # Title
         self.title = QLabel(self.name)
         self.title.setAlignment(Qt.AlignCenter)
-        self.title.setFont(QFont("Arial", 18, QFont.Bold))
+        self.title.setFont(QFont("Arial", int(18*self.scale), QFont.Bold))
         card_layout.addWidget(self.title)
 
         # Image (maximized)
@@ -65,7 +66,7 @@ class SimulatorCard(QWidget):
         # Banner
         self.banner = QLabel("DISCONNECTED")
         self.banner.setAlignment(Qt.AlignCenter)
-        self.banner.setFont(QFont("Arial", 16, QFont.Bold))
+        self.banner.setFont(QFont("Arial", int(16*self.scale), QFont.Bold))
         self.banner.setStyleSheet("""
             background-color: red;
             color: white;
@@ -80,7 +81,7 @@ class SimulatorCard(QWidget):
     def get_pixmap(self, key):
         path = SIM_IMAGES.get(key)
         if path:
-            return QPixmap(path).scaled(330, 330, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            return QPixmap(path).scaled(int(330*self.scale), int(330*self.scale), Qt.KeepAspectRatio, Qt.SmoothTransformation)
         return QPixmap()
 
     def update_display(self):
