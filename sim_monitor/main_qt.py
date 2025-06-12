@@ -30,11 +30,11 @@ class GearButton(QPushButton):
         super().__init__(parent)
         self.setIcon(icon)
         self.scale = scale
-        self.setFixedSize(int(32*scale), int(32*scale))
+        self.setFixedSize(int(20*scale), int(22*scale))
         self.setCursor(Qt.PointingHandCursor)
         
         # CSS for normal / hover / pressed
-        font_px = int(25*scale)
+        font_px = int(20*scale)
         self.setStyleSheet(f"""
             QPushButton {{
                 background-color: transparent;
@@ -114,7 +114,7 @@ class MainWindow(QMainWindow):
         logo_label = QLabel()
         logo_pixmap = QPixmap("images/fs-logo.png")
         pmap = int(120* self.ui_scale)
-        logo_pixmap = logo_pixmap.scaledToHeight(pmap, Qt.SmoothTransformation)
+        logo_pixmap = logo_pixmap.scaledToHeight(120, Qt.SmoothTransformation)
         logo_label.setPixmap(logo_pixmap)
         logo_label.setStyleSheet("margin-left: 10px;")
 
@@ -147,7 +147,7 @@ class MainWindow(QMainWindow):
 
         self.settings_btn.clicked.connect(self.open_settings)
         header_layout.addWidget(logo_label)
-        header_layout.addStretch()
+        #header_layout.addStretch()
         header_layout.addWidget(self.mode_label)
         #header_layout.addSpacing(0)
         header_layout.addWidget(self.clock_label)
@@ -223,7 +223,7 @@ class MainWindow(QMainWindow):
             self.restart_gui()
         
     def closeEvent(self, event):
-        print("🔁 Window closed, exiting...")
+        print("Window closed, exiting...")
         stop_serial_thread()
         QApplication.quit()
         event.accept()
