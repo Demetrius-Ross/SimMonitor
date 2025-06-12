@@ -26,27 +26,30 @@ COLUMNS = 6
 #QCoreApplication.setAttribute(Qt.AA_DisableHighDpiScaling)
 
 class GearButton(QPushButton):
-    def __init__(self, icon: QIcon, parent=None):
+    def __init__(self, icon: QIcon, parent=None, *,scale: float = 1.0):
         super().__init__(parent)
         self.setIcon(icon)
-        self.setFixedSize(32, 32)
+        self.scale = scale
+        self.setFixedSize(int(32*scale), int(32*scale))
         self.setCursor(Qt.PointingHandCursor)
+        
         # CSS for normal / hover / pressed
-        self.setStyleSheet("""
-            QPushButton {
+        font_px = int(25*scale)
+        self.setStyleSheet(f"""
+            QPushButton {{
                 background-color: transparent;
                 border: none;
                 color: white;
-                font-size: 20px;
-            }
-            QPushButton:hover {
+                font-size: {font_px}px;
+            }}
+            QPushButton:hover {{
                 background-color: rgba(255, 255, 255, 0.15);
-                border-radius: 16px;
-            }
-            QPushButton:pressed {
+                border-radius: {font_px}px;
+            }}
+            QPushButton:pressed {{
                 background-color: rgba(255, 255, 255, 0.30);
-                border-radius: 16px;
-            }
+                border-radius: {font_px}px;
+            }}
         """)
 
 class SettingsDialog(QDialog):
@@ -109,7 +112,7 @@ class MainWindow(QMainWindow):
         header_layout.setContentsMargins(0, 0, 0, 0)
 
         logo_label = QLabel()
-        logo_pixmap = QPixmap("images/FlightSafety_Logo-white.PNG")
+        logo_pixmap = QPixmap("images/fs-logo.png")
         pmap = int(120* self.ui_scale)
         logo_pixmap = logo_pixmap.scaledToHeight(pmap, Qt.SmoothTransformation)
         logo_label.setPixmap(logo_pixmap)
@@ -120,7 +123,7 @@ class MainWindow(QMainWindow):
         self.mode_label.setFont(QFont("Arial", font_size1))
         self.mode_label.setStyleSheet("color: white;")
 
-        font_size2 = int(18*self.ui_scale)
+        font_size2 = int(25*self.ui_scale)
         self.clock_label = QLabel()
         clock_font = QFont("Arial", font_size2, QFont.Normal, italic=True)
         self.clock_label.setFont(clock_font)
@@ -137,10 +140,10 @@ class MainWindow(QMainWindow):
         self.settings_btn = QPushButton()
         gear_icon = QIcon.fromTheme("preferences-system")
         if gear_icon.isNull():
-            self.settings_btn = GearButton(QIcon(), self)
+            self.settings_btn = GearButton(QIcon(), self, scale=self.ui_scale)
             self.settings_btn.setText("⚙")
         else:
-            self.settings_btn = GearButton(gear_icon, self)
+            self.settings_btn = GearButton(gear_icon, self, scale=self.ui_scale)
 
         self.settings_btn.clicked.connect(self.open_settings)
         header_layout.addWidget(logo_label)
