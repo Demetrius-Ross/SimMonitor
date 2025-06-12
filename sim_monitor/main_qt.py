@@ -146,8 +146,9 @@ class MainWindow(QMainWindow):
             self.settings_btn = GearButton(gear_icon, self, scale=self.ui_scale)
 
         self.settings_btn.clicked.connect(self.open_settings)
+        
+        header_layout.addStretch()
         header_layout.addWidget(logo_label)
-        #header_layout.addStretch()
         header_layout.addWidget(self.mode_label)
         #header_layout.addSpacing(0)
         header_layout.addWidget(self.clock_label)
