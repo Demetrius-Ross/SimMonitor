@@ -1,171 +1,152 @@
-# utils/serial_handler_qt.py  (Unified version 2025-05-29)
+# serial_handler_qt.py
+"""
+Qt-friendly Serial Monitor for the Sim-Monitor GUI
+-------------------------------------------------
+• Works on Windows (“COMx”) and Linux (“/dev/ttyUSBx”)
+• Uses the exact LINE-PARSING logic that already proved reliable
+  in your original serial_handler.py
+• Dispatches GUI-updates safely back to the Qt thread
+"""
 
-import time, threading, logging, re
-from PyQt5.QtCore import QTimer
+import logging, threading, time, re, sys
+from functools import partial
+from PyQt5.QtCore import QTimer, QMetaObject, Qt, Q_ARG
+
 
 try:
-    import serial
-    import serial.tools.list_ports
+    import serial, serial.tools.list_ports        # real serial
 except ImportError:
-    serial = None        # PySerial may be missing in dev environment
+    serial = None                                 # PySerial not present
 
-DEBUG_MODE  = True
-SERIAL_PORT = "/dev/ttyUSB0"   # preferred port
-BAUD_RATE   = 115200
-chosen_port = None             # last good port (auto-scan)
+# ----------------------------------------------------------------------
+#  Configuration  ------------------------------------------------------
+# ----------------------------------------------------------------------
+DEBUG_MODE   = False          # toggled by main_qt via set_debug_mode()
+SERIAL_PORT  = "COM3"         # leave "" for “auto”, or hard-wire (e.g. COM3)
+BAUD_RATE    = 115200
+READ_TIMEOUT = 1.0            # seconds (blocks inside the worker-thread)
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(message)s")
+logging.basicConfig(level=logging.INFO,
+                    format="%(levelname)s:%(message)s")
 
-# ── Regex patterns ─────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+#  Regex (identical to your working code)
+# ----------------------------------------------------------------------
 data_regex = re.compile(
-    r'\[DATA\]\s+Received from Sender ID\s+(\d+):\s+'
-    r'RampState=(\d+),\s+MotionState=(\d+),\s+Seq=(\d+)'
-)
+    r'^\[DATA\]\s+Received from Sender ID\s+(\d+):\s+RampState=(\d+),\s+MotionState=(\d+),\s+Seq=(\d+)$')
 heartbeat_regex = re.compile(
-    r'\[HEARTBEAT\]\s+Received from Sender ID\s+(\d+):\s+'
-    r'RampState=(\d+),\s+MotionState=(\d+),\s+Seq=(\d+)'
-)
+    r'^\[HEARTBEAT\]\s+Received from Sender ID\s+(\d+):\s+RampState=(\d+),\s+MotionState=(\d+),\s+Seq=(\d+)$')
 
-# ── Globals for thread coordination ────────────────────────────────────────
-active_senders     = {}            # {id: {last_seen, retry, offline}}
-serial_thread_flag = threading.Event()   # set() when thread should run
-
-# ───────────────────────────────────────────────────────────────────────────
-# Public helpers
-# ───────────────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+#  Public toggles called by your GUI
+# ----------------------------------------------------------------------
 def set_debug_mode(enabled: bool):
-    """Switch Debug/LIVE and restart thread if needed."""
     global DEBUG_MODE
     DEBUG_MODE = enabled
-    stop_serial_thread()
-    logger.info("Serial debug mode set to: %s", 'DEBUG' if enabled else 'LIVE')
+    logger.info(f"Serial debug mode set to: {'DEBUG' if enabled else 'LIVE'}")
 
 def stop_serial_thread():
-    """Signal thread to stop."""
-    serial_thread_flag.clear()
+    """Set by your MainWindow.closeEvent()"""
+    global _RUN_FLAG
+    _RUN_FLAG = False
 
-def start_serial_thread(simulator_map, update_sim_fn, mark_offline_fn):
-    """
-    Kick off serial reader + offline heartbeat checker.
-    Each callback runs in GUI thread via QTimer.singleShot(0,…).
-    """
-    if serial_thread_flag.is_set():
-        return          # already running
-    serial_thread_flag.set()
 
-    # ── MockSerial (unchanged) ────────────────────────────────────────────
+# ----------------------------------------------------------------------
+#  Main entry:  start_serial_thread(...)
+# ----------------------------------------------------------------------
+def start_serial_thread(sim_cards: dict, *,
+                        update_sim_fn, mark_offline_fn):
+    """
+    • sim_cards      -> { device_id: SimulatorCard }
+    • update_sim_fn  -> callable(id, motion, ramp)
+    • mark_offline_fn-> callable(id, offline_bool)
+
+    Called once from main_qt.py after the UI is built.
+    """
+    global _RUN_FLAG
+    _RUN_FLAG = True
+
+    # -------------------------  helpers  ------------------------------
     class MockSerial:
+        """When DEBUG_MODE=True – feed dummy frames every 2 s"""
+        lines = [
+            b"[HEARTBEAT] Received from Sender ID 2: RampState=0, MotionState=2, Seq=4979\n",
+            b"[DATA] Received from Sender ID 1: RampState=2, MotionState=1, Seq=54\n",
+        ]
         def __init__(self):
-            self.lines = [
-                b"[DATA] Received from Sender ID 1: RampState=2, MotionState=1, Seq=54\n",
-                b"[HEARTBEAT] Received from Sender ID 2: RampState=2, MotionState=2, Seq=88\n",
-                b"[DATA] Received from Sender ID 3: RampState=1, MotionState=0, Seq=99\n",
-                b"[DATA] Received from Sender ID 4: RampState=2, MotionState=1, Seq=54\n",
-            ]
             self.idx = 0
-        def readline(self):
-            if self.idx < len(self.lines):
-                line = self.lines[self.idx]; self.idx += 1
-                return line
-            time.sleep(0.5)
-            return b''
+        def readline(self):                          # emulate blocking read
+            time.sleep(2)
+            l = self.lines[self.idx % len(self.lines)]
+            self.idx += 1
+            return l
         @property
         def is_open(self): return True
         def close(self): pass
 
-    # ── Port-scanning helper (from original file) ─────────────────────────
-    def open_any_serial_port(preferred, baud):
-        global chosen_port
+    #  --- open port ---------------------------------------------------
+    def open_any_serial_port(preferred: str, baud: int):
         if DEBUG_MODE or serial is None:
-            logger.info("Using MockSerial (Debug mode)")
+            logger.info("Using MockSerial   (DEBUG mode)")
             return MockSerial()
 
-        # 1. Try preferred
+        # 1) try the preferred one first
         try:
-            ser = serial.Serial(preferred, baud, timeout=1)
-            chosen_port = ser.port
-            logger.info("Opened preferred port %s", preferred)
-            return ser
-        except Exception as e:
-            logger.warning("Preferred port %s failed: %s", preferred, e)
+            if preferred:
+                s = serial.Serial(preferred, baud, timeout=READ_TIMEOUT)
+                logger.info(f"Opened preferred port {preferred}")
+                return s
+        except Exception as exc:
+            logger.warning(f"Preferred port failed: {exc}")
 
-        # 2. Scan all ports
+        # 2) scan everything the OS can see
+        logger.info("Scanning serial ports …")
         for p in serial.tools.list_ports.comports():
             try:
-                ser = serial.Serial(p.device, baud, timeout=1)
-                chosen_port = ser.port
-                logger.info("Opened fallback port %s", p.device)
-                return ser
+                s = serial.Serial(p.device, baud, timeout=READ_TIMEOUT)
+                logger.info(f"Opened {p.device}")
+                return s
             except Exception:
                 continue
+        raise IOError("No serial ports available")
 
-        raise IOError("No serial ports found")
-
-    # ── Helper to mark activity & offline status ──────────────────────────
-    def _mark_active(sid):
-        now = time.time()
-        info = active_senders.setdefault(sid, {'last_seen':0,'retry':0,'offline':True})
-        info['last_seen'] = now
-        info['retry']     = 0
-        if info['offline']:
-            info['offline'] = False
-            QTimer.singleShot(0, lambda: mark_offline_fn(sid, False))
-
-    def offline_check():
-        now = time.time()
-        for sid, info in list(active_senders.items()):
-            if info['offline']:
-                continue
-            if now - info['last_seen'] > 30:
-                info['retry'] += 1
-                if info['retry'] >= 3:
-                    info['offline'] = True
-                    logger.warning("Sender %s OFFLINE", sid)
-                    QTimer.singleShot(0, lambda sid=sid: mark_offline_fn(sid, True))
-        if serial_thread_flag.is_set():
-            QTimer.singleShot(5000, offline_check)
-
-    # ── Serial worker thread ──────────────────────────────────────────────
-    def serial_worker():
+    #  --- worker thread ----------------------------------------------
+    def reader_thread():
+        ser = None
         try:
             ser = open_any_serial_port(SERIAL_PORT, BAUD_RATE)
-        except Exception as e:
-            logger.error("Serial init failed: %s", e)
-            return
-
-        while serial_thread_flag.is_set():
-            try:
-                raw = ser.readline()
+            while _RUN_FLAG:
+                raw = ser.readline().decode(errors="replace").strip()
                 if not raw:
                     continue
-                line = raw.decode(errors='replace').strip()
-                logger.debug("LINE %s", line)
 
-                m = data_regex.match(line) or heartbeat_regex.match(line)
+                logger.debug(f"RX: {raw}")
+
+                m = data_regex.match(raw) or heartbeat_regex.match(raw)
                 if not m:
                     continue
 
-                sid   = int(m.group(1))
-                ramp  = int(m.group(2))
-                motion= int(m.group(3))
-                _mark_active(sid)
+                sid  = int(m.group(1))
+                ramp = int(m.group(2))
+                mot  = int(m.group(3))
 
-                if sid in simulator_map:
-                    QTimer.singleShot(0,
-                        lambda sid=sid, r=ramp, m=motion:
-                            update_sim_fn(sid, m, r))
-            except Exception as e:
-                logger.error("Serial thread error: %s", e)
-                time.sleep(1)
+                # dispatch *safely* back into Qt’s main thread
+                QMetaObject.invokeMethod(
+                    update_sim_fn.__self__,
+                    "update_simulator_state",
+                    Qt.QueuedConnection,
+                    Q_ARG(int, sid),
+                    Q_ARG(int, mot),
+                    Q_ARG(int, ramp)
+                )
 
-        # Thread stopping → close port
-        try:
-            ser.close()
-        except Exception:
-            pass
-        logger.info("Serial thread exited")
+        except Exception as exc:
+            logger.error(f"Serial worker error: {exc}")
+        finally:
+            if ser and ser.is_open:
+                ser.close()
+                logger.info("Serial port closed.")
 
-    # ── start everything ─────────────────────────────────────────────────
-    QTimer.singleShot(5000, offline_check)
-    threading.Thread(target=serial_worker, daemon=True).start()
+    #  --- launch! -----------------------------------------------------
+    threading.Thread(target=reader_thread, daemon=True).start()

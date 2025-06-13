@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QMenu, QMessageBox, QFileDialog                              
 )
 from PyQt5.QtGui import QFont, QIcon, QPixmap
-from PyQt5.QtCore import Qt, QTimer, QTime, QDate, QCoreApplication
+from PyQt5.QtCore import Qt, QTimer, QTime, QDate, QCoreApplication, pyqtSlot
 
 from edit_layout_dialog import EditLayoutDialog
 from utils.simulator_map import SIMULATOR_MAP, SIMULATOR_LAYOUT
@@ -81,7 +81,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("FlightSafety Simulator Monitor")
         self.setStyleSheet("background-color: white;")
         screen_h = QApplication.primaryScreen().size().height()
-        self.ui_scale = max(2.0, screen_h / 1080) # CHANGE SCALE HERE
+        self.ui_scale = max(2, screen_h / 1080) # CHANGE SCALE HERE
         self.is_fullscreen = True
         self.simulator_cards = {}
 
@@ -194,11 +194,12 @@ class MainWindow(QMainWindow):
             mark_offline_fn=self.set_simulator_offline
         )
 
-
+    @pyqtSlot(int, int, int)
     def update_simulator_state(self, sim_id, motion, ramp):
         if sim_id in self.simulator_cards:
             self.simulator_cards[sim_id].update_state(motion, ramp)
 
+    @pyqtSlot(int, bool)
     def set_simulator_offline(self, sim_id, offline=True):
         if sim_id in self.simulator_cards:
             self.simulator_cards[sim_id].set_offline(offline)
