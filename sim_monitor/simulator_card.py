@@ -46,7 +46,9 @@ class SimulatorCard(QWidget):
                 border-radius: 16px;
             }
         """)
-        self.card.setMinimumSize(QSize(0, 0))
+        self.card.setMinimumHeight(int(400 * self.scale))  # match your full scaled height
+        self.card.setMaximumHeight(int(400 * self.scale))
+
         card_layout = QVBoxLayout(self.card)
         card_layout.setContentsMargins(int(12 * self.scale), int(12 * self.scale), int(12 * self.scale), int(12 * self.scale))
         card_layout.setSpacing(int(12 * self.scale))
@@ -89,9 +91,10 @@ class SimulatorCard(QWidget):
 
         # Gray overlay – child of the actual rounded card frame
         self.overlay = QLabel(self.card)
-        self.overlay.setStyleSheet("""
+        self.overlay_radius = int(16 * self.scale)
+        self.overlay.setStyleSheet(f"""
             background-color: rgba(0, 0, 0, 80);
-            border-radius: 16px;
+            border-radius: {self.overlay_radius}px;
         """)
         self.overlay.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.overlay.hide()
@@ -100,24 +103,23 @@ class SimulatorCard(QWidget):
         self.update_display()
 
     def apply_overlay_mask(self):
-        from PyQt5.QtCore import QRectF
-        from PyQt5.QtGui import QPainterPath, QRegion
-
-        # Get the exact geometry of the visible white part (ignore shadow)
-        visible_rect = QRectF(0, 0, self.card.width(), self.card.height())
-        corner_radius = 16  # Must match your CSS border-radius
-
+        visible_rect = QRectF(self.overlay.rect())
         path = QPainterPath()
-        path.addRoundedRect(visible_rect, corner_radius, corner_radius)
+        path.addRoundedRect(visible_rect, self.overlay_radius, self.overlay_radius)
         region = QRegion(path.toFillPolygon().toPolygon())
-
         self.overlay.setMask(region)
+
 
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        self.overlay.setGeometry(self.card.rect())  # Cover full card (including shadow bleed)
+
+        # Ensure the card fills the full expected space
+        self.card.setFixedHeight(int(400 * self.scale))  # match outer dimensions
+        self.overlay.setGeometry(0, 0, self.card.width(), self.card.height())
         self.apply_overlay_mask()
+
+
 
 
     def get_pixmap(self, key):
