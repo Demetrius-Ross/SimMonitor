@@ -51,9 +51,9 @@ class AnimatedStatusBar(QLabel):
             w = self.width()
             h = self.height()
             spacing = 40
-            stripe_width = 20
+            stripe_width = 30
 
-            for x in range(-40, w, spacing):
+            for x in range(-40, w, int(spacing/2)):
                 x_pos = x + self.offset
                 painter.save()
                 painter.translate(x_pos, 0)
