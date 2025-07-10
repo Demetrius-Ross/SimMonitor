@@ -81,7 +81,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("FlightSafety Simulator Monitor")
         self.setStyleSheet("background-color: white;")
         screen_h = QApplication.primaryScreen().size().height()
-        self.ui_scale = max(2, screen_h / 1080) # CHANGE SCALE HERE
+        self.ui_scale = max(0.5, screen_h / 1080) # CHANGE SCALE HERE
         self.is_fullscreen = True
         self.simulator_cards = {}
 

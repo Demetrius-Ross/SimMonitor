@@ -1,8 +1,8 @@
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QFrame, QGraphicsDropShadowEffect, QStackedLayout
 )
-from PyQt5.QtGui import QPixmap, QFont, QRegion, QPainterPath
-from PyQt5.QtCore import Qt, QSize, QRectF
+from PyQt5.QtGui import QPixmap, QFont, QRegion, QPainterPath, QPainter, QColor, QBrush
+from PyQt5.QtCore import Qt, QSize, QRectF, QTimer, QPoint
 
 SIM_IMAGES = {
     "motion-on": "images/FINAL-SIM-UP.png",
@@ -10,6 +10,57 @@ SIM_IMAGES = {
     "at-home": "images/FINAL-SIM-DOWN.png",
     "offline": "images/FINAL-SIM-DOWN.png"
 }
+
+
+
+class AnimatedStatusBar(QLabel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.offset = 0
+        self.animation_enabled = False
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_offset)
+        self.timer.setInterval(60)  # ~30 FPS
+
+    def enable_animation(self, enable=True):
+        self.animation_enabled = enable
+        if enable:
+            self.timer.start()
+        else:
+            self.timer.stop()
+            self.update()  # repaint to remove stripes
+
+    def update_offset(self):
+        self.offset = (self.offset + 2) % 20
+        self.update()
+
+    def paintEvent(self, event):
+        # First: draw the label text (default QLabel behavior)
+        QLabel.paintEvent(self, event)
+
+        # Then: overlay animated stripes *under* the text
+        if self.animation_enabled:
+            painter = QPainter(self)
+            painter.setOpacity(0.25)
+            brush = QBrush(QColor("#990000"))  # dark red
+            painter.setBrush(brush)
+            painter.setPen(Qt.NoPen)
+            painter.setClipRect(self.rect())
+
+            w = self.width()
+            h = self.height()
+            spacing = 20
+            stripe_width = 10
+
+            for x in range(-40, w, spacing):
+                x_pos = x + self.offset
+                painter.save()
+                painter.translate(x_pos, 0)
+                painter.rotate(30)
+                painter.drawRect(0, -h, stripe_width, h * 3)
+                painter.restore()
+
 
 
 class SimulatorCard(QWidget):
@@ -61,6 +112,8 @@ class SimulatorCard(QWidget):
         shadow.setColor(Qt.gray)
         self.card.setGraphicsEffect(shadow)
 
+
+        
         # Title
         self.title = QLabel(self.name)
         self.title.setAlignment(Qt.AlignCenter)
@@ -75,17 +128,18 @@ class SimulatorCard(QWidget):
         self.image.setPixmap(self.get_pixmap("offline"))
         card_layout.addWidget(self.image)
 
-        # Banner
-        self.banner = QLabel("DISCONNECTED")
-        self.banner.setAlignment(Qt.AlignCenter)
-        self.banner.setFont(QFont("Arial", int(16 * self.scale), QFont.Bold))
-        self.banner.setStyleSheet("""
-            background-color: red;
-            color: white;
+        # Status Bar (dynamic)
+        self.status_bar = AnimatedStatusBar("DISCONNECTED")
+        self.status_bar.setAlignment(Qt.AlignCenter)
+        self.status_bar.setFont(QFont("Arial", int(16 * self.scale), QFont.Bold))
+        self.status_bar.setStyleSheet("""
+            background-color: #bbb;
+            color: black;
             padding: 8px 16px;
             border-radius: 6px;
         """)
-        card_layout.addWidget(self.banner)
+        card_layout.addWidget(self.status_bar)
+
 
         outer_layout.addWidget(self.card)
 
@@ -131,23 +185,69 @@ class SimulatorCard(QWidget):
     def update_display(self):
         if self.offline:
             self.image.setPixmap(self.get_pixmap("offline"))
-            self.banner.setText("DISCONNECTED")
-            self.banner.show()
+            self.status_bar.setText("DISCONNECTED")
+            self.status_bar.setStyleSheet("""
+                background-color: #bbb;
+                color: black;
+                padding: 8px 16px;
+                border-radius: 6px;
+            """)
             self.overlay.show()
             self.overlay.raise_()
-        else:
-            self.banner.hide()
-            self.overlay.hide()
+            return
 
-            if self.motion_state == 2:
-                self.image.setPixmap(self.get_pixmap("motion-on"))
-            elif self.motion_state == 1:
-                if self.ramp_state == 1:
-                    self.image.setPixmap(self.get_pixmap("ramping"))
-                else:
-                    self.image.setPixmap(self.get_pixmap("at-home"))
+        self.overlay.hide()
+
+        # Determine simulator state and update image + status bar
+        if self.motion_state == 2:
+            # In motion
+            self.image.setPixmap(self.get_pixmap("motion-on"))
+            self.status_bar.setText("In Operation")
+            self.status_bar.setStyleSheet("""
+                background-color: red;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 6px;
+            """)
+            self.status_bar.enable_animation(True)
+        elif self.motion_state == 1:
+            if self.ramp_state == 1:
+                # Bridge up only
+                self.image.setPixmap(self.get_pixmap("ramping"))
+                self.status_bar.setText("Ramp Up")
+                self.status_bar.setStyleSheet("""
+                    background-color: purple;
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                """)
+                self.status_bar.enable_animation(False)
+
             else:
-                self.image.setPixmap(self.get_pixmap("motion-on"))
+                # Fully down
+                self.image.setPixmap(self.get_pixmap("at-home"))
+                self.status_bar.setText("Standby")
+                self.status_bar.setStyleSheet("""
+                    background-color: green;
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                """)
+                self.status_bar.enable_animation(False)
+
+        else:
+            # Default fallback
+            self.image.setPixmap(self.get_pixmap("motion-on"))
+            self.status_bar.setText("Unknown State")
+            self.status_bar.setStyleSheet("""
+                background-color: gray;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 6px;
+            """)
+            self.status_bar.enable_animation(False)
+
+
 
     def update_state(self, motion, ramp):
         self.motion_state = motion

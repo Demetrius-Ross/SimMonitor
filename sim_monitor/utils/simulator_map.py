@@ -8,12 +8,12 @@ SIMULATOR_MAP = {
     4: "EC-135",
     5: "ERJ-24",
     6: "PC-12",
-    7: "CRJ-200",
-    8: "ERJ-19",
-    9: "ERJ-16",
+    7: "ERJ-19",
+    8: "ERJ-16",
+    9: "ERJ-32",
     10: "CRJ-700",
     11: "EC-145",
-    12: "ERJ-32"
+    12: "CRJ-200"
 }
 
 SIMULATOR_LAYOUT = {
