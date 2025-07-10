@@ -21,7 +21,7 @@ except ImportError:
 # ----------------------------------------------------------------------
 #  Configuration  ------------------------------------------------------
 # ----------------------------------------------------------------------
-DEBUG_MODE   = True          # toggled by main_qt via set_debug_mode()
+DEBUG_MODE   = False          # toggled by main_qt via set_debug_mode()
 SERIAL_PORT  = "COM3"         # leave "" for “auto”, or hard-wire (e.g. COM3)
 BAUD_RATE    = 115200
 READ_TIMEOUT = 1.0            # seconds (blocks inside the worker-thread)
