@@ -21,7 +21,7 @@ class AnimatedStatusBar(QLabel):
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_offset)
-        self.timer.setInterval(60)  # ~30 FPS
+        self.timer.setInterval(30)  # ~30 FPS
 
     def enable_animation(self, enable=True):
         self.animation_enabled = enable
@@ -51,7 +51,7 @@ class AnimatedStatusBar(QLabel):
             w = self.width()
             h = self.height()
             spacing = 20
-            stripe_width = 10
+            stripe_width = 30
 
             for x in range(-40, w, spacing):
                 x_pos = x + self.offset
