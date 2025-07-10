@@ -42,8 +42,8 @@ class AnimatedStatusBar(QLabel):
         # Then: overlay animated stripes *under* the text
         if self.animation_enabled:
             painter = QPainter(self)
-            painter.setOpacity(0.25)
-            brush = QBrush(QColor("#990000"))  # dark red
+            painter.setOpacity(0.20)
+            brush = QBrush(QColor("white"))  # dark red
             painter.setBrush(brush)
             painter.setPen(Qt.NoPen)
             painter.setClipRect(self.rect())
