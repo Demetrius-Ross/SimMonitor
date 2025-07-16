@@ -1,8 +1,9 @@
 from PyQt5.QtWidgets import (
-    QWidget, QLabel, QVBoxLayout, QFrame, QGraphicsDropShadowEffect, QStackedLayout
+    QWidget, QLabel, QVBoxLayout, QFrame, QGraphicsDropShadowEffect, QStackedLayout,  QGraphicsOpacityEffect
 )
 from PyQt5.QtGui import QPixmap, QFont, QRegion, QPainterPath, QPainter, QColor, QBrush
-from PyQt5.QtCore import Qt, QSize, QRectF, QTimer, QPoint
+from PyQt5.QtCore import Qt, QSize, QRectF, QTimer, QPoint, QPropertyAnimation, QEasingCurve
+
 
 SIM_IMAGES = {
     "motion-on": "images/FINAL-SIM-UP.png",
@@ -16,34 +17,66 @@ SIM_IMAGES = {
 class AnimatedStatusBar(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.animation_mode = None  # "fade" or "stripes"
+
+        # For fade animation
+        self.opacity_effect = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self.opacity_effect)
+
+        self.fade_anim = QPropertyAnimation(self.opacity_effect, b"opacity", self)
+        self.fade_anim.setDuration(1000)
+        self.fade_anim.setStartValue(1.0)
+        self.fade_anim.setEndValue(0.3)
+        self.fade_anim.setEasingCurve(QEasingCurve.InOutQuad)
+        self.fade_anim.setLoopCount(-1)
+
+        # For stripe animation
+        self.stripe_timer = QTimer(self)
+        self.stripe_timer.timeout.connect(self.update_offset)
+        self.stripe_timer.setInterval(60)
         self.offset = 0
-        self.animation_enabled = False
 
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_offset)
-        self.timer.setInterval(60)  # ~30 FPS
+    def enable_animation(self, enable=True, mode="stripes"):
+        self.animation_mode = mode
 
-    def enable_animation(self, enable=True):
-        self.animation_enabled = enable
-        if enable:
-            self.timer.start()
-        else:
-            self.timer.stop()
-            self.update()  # repaint to remove stripes
+        # Stop all animations
+        self.fade_anim.stop()
+        self.stripe_timer.stop()
+
+        if not enable:
+            self.animation_mode = None
+
+            # Remove any fade effect
+            if self.graphicsEffect():
+                self.setGraphicsEffect(None)
+
+            self.update()
+            return
+
+        if mode == "fade":
+            # Apply opacity effect only for fading
+            self.setGraphicsEffect(self.opacity_effect)
+            self.opacity_effect.setOpacity(1.0)
+            self.fade_anim.start()
+
+        elif mode == "stripes":
+            # Remove opacity effect if it was previously applied
+            if self.graphicsEffect():
+                self.setGraphicsEffect(None)
+            self.stripe_timer.start()
+
 
     def update_offset(self):
         self.offset = (self.offset + 2) % 20
         self.update()
 
     def paintEvent(self, event):
-        # First: draw the label text (default QLabel behavior)
-        QLabel.paintEvent(self, event)
+        super().paintEvent(event)
 
-        # Then: overlay animated stripes *under* the text
-        if self.animation_enabled:
+        if self.animation_mode == "stripes":
             painter = QPainter(self)
             painter.setOpacity(0.30)
-            brush = QBrush(QColor("white"))  # dark red
+            brush = QBrush(QColor("white"))
             painter.setBrush(brush)
             painter.setPen(Qt.NoPen)
             painter.setClipRect(self.rect())
@@ -60,6 +93,7 @@ class AnimatedStatusBar(QLabel):
                 painter.rotate(30)
                 painter.drawRect(0, -h, stripe_width, h * 3)
                 painter.restore()
+
 
 
 
@@ -209,10 +243,24 @@ class SimulatorCard(QWidget):
                 padding: 8px 16px;
                 border-radius: 6px;
             """)
-            self.status_bar.enable_animation(True)
+            self.status_bar.enable_animation(True, mode="stripes")
+
         elif self.motion_state == 1:
-            if self.ramp_state == 1:
-                # Bridge up only
+            if self.ramp_state == 0:
+                # Ramp is moving
+                self.image.setPixmap(self.get_pixmap("ramping"))
+                self.status_bar.setText("RAMPING")
+                self.status_bar.setStyleSheet("""
+                    background-color: yellow;
+                    color: black;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                """)
+                self.status_bar.enable_animation(True, mode="fade")
+
+
+            elif self.ramp_state == 1:
+                # Ramp Up
                 self.image.setPixmap(self.get_pixmap("ramping"))
                 self.status_bar.setText("Ramp Up")
                 self.status_bar.setStyleSheet("""
@@ -223,8 +271,8 @@ class SimulatorCard(QWidget):
                 """)
                 self.status_bar.enable_animation(False)
 
-            else:
-                # Fully down
+            elif self.ramp_state == 2:
+                # Ramp Down
                 self.image.setPixmap(self.get_pixmap("at-home"))
                 self.status_bar.setText("Standby")
                 self.status_bar.setStyleSheet("""
@@ -234,6 +282,20 @@ class SimulatorCard(QWidget):
                     border-radius: 6px;
                 """)
                 self.status_bar.enable_animation(False)
+
+            else:
+                # Fallback
+                self.image.setPixmap(self.get_pixmap("at-home"))
+                self.status_bar.setText("Standby")
+                self.status_bar.setStyleSheet("""
+                    background-color: gray;
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                """)
+                self.status_bar.enable_animation(False)
+
+
 
         else:
             # Default fallback
@@ -245,6 +307,7 @@ class SimulatorCard(QWidget):
                 padding: 8px 16px;
                 border-radius: 6px;
             """)
+            
             self.status_bar.enable_animation(False)
 
 

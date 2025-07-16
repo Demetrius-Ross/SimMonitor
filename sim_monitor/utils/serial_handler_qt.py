@@ -73,6 +73,7 @@ def start_serial_thread(sim_cards: dict, *,
         lines = [
             b"[HEARTBEAT] Received from Sender ID 2: RampState=0, MotionState=2, Seq=4979\n",
             b"[DATA] Received from Sender ID 1: RampState=2, MotionState=1, Seq=54\n",
+            b"[DATA] Received from Sender ID 4: RampState=0, MotionState=1, Seq=54\n",
         ]
         def __init__(self):
             self.idx = 0
