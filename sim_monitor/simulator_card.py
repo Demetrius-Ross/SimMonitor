@@ -353,10 +353,12 @@ class SimulatorCard(QWidget):
 
 
     def activate_ramp_disconnected(self):
-        self.ramp_disconnected = True
-        self.force_label_override = True
-        self.update_display()
-        self.ramp_disconnect_label_timer.start(5000)  # 5 seconds
+        if not self.ramp_disconnected:
+            self.ramp_disconnected = True
+            self.force_label_override = True
+            self.update_display()
+            self.ramp_disconnect_label_timer.start(5000)  # Only start label timer once
+
 
     def clear_ramp_label_override(self):
         self.force_label_override = False
