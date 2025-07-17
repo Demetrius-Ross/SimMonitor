@@ -297,20 +297,19 @@ class SimulatorCard(QWidget):
 
 
     def update_state(self, motion, ramp):
-        ramp_changed = (ramp != self.ramp_state)
-
         self.motion_state = motion
         self.ramp_state = ramp
         self.set_offline(False)
 
         if ramp == 0:
-            if ramp_changed:
-                self.ramp_disconnect_timer.start(15000)  # 15 seconds
+            if not self.ramp_disconnect_timer.isActive():
+                self.ramp_disconnect_timer.start(15000)
         else:
             self.ramp_disconnect_timer.stop()
             self.ramp_disconnected = False
 
         self.update_display()
+
 
 
     def activate_ramp_disconnected(self):
