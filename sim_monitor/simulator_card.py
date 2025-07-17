@@ -79,6 +79,12 @@ class SimulatorCard(QWidget):
         self.ramp_disconnect_timer.setSingleShot(True)
         self.ramp_disconnect_timer.timeout.connect(self.activate_ramp_disconnected)
         self.ramp_disconnected = False
+        
+        self.force_label_override = False
+
+        self.ramp_disconnect_label_timer = QTimer(self)
+        self.ramp_disconnect_label_timer.setSingleShot(True)
+        self.ramp_disconnect_label_timer.timeout.connect(self.clear_ramp_label_override)
 
 
         # Full card size
@@ -208,15 +214,18 @@ class SimulatorCard(QWidget):
         if self.ramp_disconnected:
             key = "motion-on-no-ramp" if self.motion_state == 2 else "at-home-no-ramp"
             self.image.setPixmap(self.get_pixmap(key))
-            self.status_bar.setText("Ramp Disconnected")
-            self.status_bar.setStyleSheet("""
-                background-color: #444;
-                color: white;
-                padding: 8px 16px;
-                border-radius: 6px;
-            """)
-            self.status_bar.enable_animation(False)
-            return
+
+            if self.force_label_override:
+                self.status_bar.setText("Ramp Disconnected")
+                self.status_bar.setStyleSheet("""
+                    background-color: orange;
+                    color: black;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                """)
+                self.status_bar.enable_animation(False)
+                return
+
 
 
         # Determine simulator state and update image + status bar
@@ -314,7 +323,14 @@ class SimulatorCard(QWidget):
 
     def activate_ramp_disconnected(self):
         self.ramp_disconnected = True
+        self.force_label_override = True
         self.update_display()
+        self.ramp_disconnect_label_timer.start(5000)  # 5 seconds
+
+    def clear_ramp_label_override(self):
+        self.force_label_override = False
+        self.update_display()
+
 
     def set_offline(self, offline=True):
         self.offline = offline
