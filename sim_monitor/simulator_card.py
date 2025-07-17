@@ -225,6 +225,37 @@ class SimulatorCard(QWidget):
                 """)
                 self.status_bar.enable_animation(False)
                 return
+            else:
+                # After 5s — show appropriate fallback label based on motion only
+                if self.motion_state == 2:
+                    self.status_bar.setText("In Operation (No Ramp)")
+                    self.status_bar.setStyleSheet("""
+                        background-color: red;
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 6px;
+                    """)
+                    self.status_bar.enable_animation(True)
+                elif self.motion_state == 1:
+                    self.status_bar.setText("Standby (No Ramp)")
+                    self.status_bar.setStyleSheet("""
+                        background-color: green;
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 6px;
+                    """)
+                    self.status_bar.enable_animation(False)
+                else:
+                    self.status_bar.setText("Unknown (No Ramp)")
+                    self.status_bar.setStyleSheet("""
+                        background-color: gray;
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 6px;
+                    """)
+                    self.status_bar.enable_animation(False)
+                return
+
 
 
 
