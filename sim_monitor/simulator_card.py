@@ -8,7 +8,9 @@ SIM_IMAGES = {
     "motion-on": "images/FINAL-SIM-UP.png",
     "ramping": "images/FINAL-RAMP-UP.png",
     "at-home": "images/FINAL-SIM-DOWN.png",
-    "offline": "images/FINAL-SIM-DOWN.png"
+    "offline": "images/FINAL-SIM-DOWN.png",
+    "motion-on-no-ramp": "images/FINAL-SIM-UP-NO-RAMP.png",
+    "at-home-no-ramp": "images/FINAL-SIM-DOWN-NO-RAMP.png"
 }
 
 
@@ -73,6 +75,11 @@ class SimulatorCard(QWidget):
         self.ramp_state = 0
         self.offline = True
         self.scale = scale
+        self.ramp_disconnect_timer = QTimer(self)
+        self.ramp_disconnect_timer.setSingleShot(True)
+        self.ramp_disconnect_timer.timeout.connect(self.activate_ramp_disconnected)
+        self.ramp_disconnected = False
+
 
         # Full card size
         self.setFixedSize(int(310 * self.scale), int(420 * self.scale))
@@ -198,6 +205,20 @@ class SimulatorCard(QWidget):
 
         self.overlay.hide()
 
+        if self.ramp_disconnected:
+            key = "motion-on-no-ramp" if self.motion_state == 2 else "at-home-no-ramp"
+            self.image.setPixmap(self.get_pixmap(key))
+            self.status_bar.setText("Ramp Disconnected")
+            self.status_bar.setStyleSheet("""
+                background-color: #444;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 6px;
+            """)
+            self.status_bar.enable_animation(False)
+            return
+
+
         # Determine simulator state and update image + status bar
         if self.motion_state == 2:
             # In motion
@@ -276,9 +297,25 @@ class SimulatorCard(QWidget):
 
 
     def update_state(self, motion, ramp):
+        ramp_changed = (ramp != self.ramp_state)
+
         self.motion_state = motion
         self.ramp_state = ramp
         self.set_offline(False)
+
+        if ramp == 0:
+            if ramp_changed:
+                self.ramp_disconnect_timer.start(15000)  # 15 seconds
+        else:
+            self.ramp_disconnect_timer.stop()
+            self.ramp_disconnected = False
+
+        self.update_display()
+
+
+    def activate_ramp_disconnected(self):
+        self.ramp_disconnected = True
+        self.update_display()
 
     def set_offline(self, offline=True):
         self.offline = offline
