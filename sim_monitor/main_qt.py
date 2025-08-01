@@ -121,7 +121,7 @@ class MainWindow(QMainWindow):
 
         #STARNET
         #self.project_label = QLabel("S.T.A.R.NET")
-        self.project_label = QLabel("S.K.Y.NET - Simulate. Know. Yield. Netowrk")
+        self.project_label = QLabel("S.K.Y.NET - Simulate. Know. Yield.")
         font = QFont("Eurostile", int(32 * self.ui_scale), QFont.Bold)
 
         # If Eurostile is not available, fallback to Orbitron or Rajdhani if bundled
