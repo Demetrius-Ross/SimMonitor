@@ -119,6 +119,23 @@ class MainWindow(QMainWindow):
         #logo_label.setStyleSheet("margin-left: 10px;")
         self.logo_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
+        #STARNET
+        self.project_label = QLabel("S.T.A.R.NET")
+        font = QFont("Eurostile", int(32 * self.ui_scale), QFont.Bold)
+
+        # If Eurostile is not available, fallback to Orbitron or Rajdhani if bundled
+        if not QFont().exactMatch():
+            font = QFont("Orbitron", int(32 * self.ui_scale), QFont.Bold)
+
+        self.project_label.setFont(font)
+        self.project_label.setStyleSheet("""
+            color: white;
+            letter-spacing: 4px;
+        """)
+        self.project_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+
+
+
         font_size1 = int(12*self.ui_scale)
         self.mode_label = QLabel("MODE: DEBUG")
         self.mode_label.setFont(QFont("Arial", font_size1))
@@ -149,8 +166,13 @@ class MainWindow(QMainWindow):
         self.settings_btn.clicked.connect(self.open_settings)
         
         header_layout.addWidget(self.logo_label)
+        header_layout.addSpacing(int(20 * self.ui_scale))
+        header_layout.addWidget(self.project_label)
+
         header_layout.addStretch()
         header_layout.addWidget(self.mode_label)
+
+        
         
         #header_layout.addSpacing(0)
         header_layout.addWidget(self.clock_label)

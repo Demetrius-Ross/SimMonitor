@@ -366,23 +366,25 @@ class SimulatorCard(QWidget):
 
 
     def set_offline(self, offline=True):
-        self.offline = offline
+        # Only update if there's an actual change
+        if self.offline != offline:
+            self.offline = offline
 
-        if offline:
-            self.overlay.show()
-            self.overlay.raise_()
+            if offline:
+                self.overlay.show()
+                self.overlay.raise_()
 
-            # Remove drop shadow
-            self.card.setGraphicsEffect(None)
-        else:
-            self.overlay.hide()
+                # Remove drop shadow for offline
+                self.card.setGraphicsEffect(None)
+            else:
+                self.overlay.hide()
 
-            # Restore drop shadow
-            shadow = QGraphicsDropShadowEffect(self)
-            shadow.setOffset(0, int(3 * self.scale))
-            shadow.setBlurRadius(int(14 * self.scale))
-            shadow.setColor(Qt.gray)
-            self.card.setGraphicsEffect(shadow)
+                # Restore drop shadow
+                shadow = QGraphicsDropShadowEffect(self)
+                shadow.setOffset(0, int(3 * self.scale))
+                shadow.setBlurRadius(int(14 * self.scale))
+                shadow.setColor(Qt.gray)
+                self.card.setGraphicsEffect(shadow)
 
-        self.update_display()
+            self.update_display()
 
