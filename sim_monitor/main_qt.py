@@ -120,7 +120,8 @@ class MainWindow(QMainWindow):
         self.logo_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         #STARNET
-        self.project_label = QLabel("S.T.A.R.NET")
+        #self.project_label = QLabel("S.T.A.R.NET")
+        self.project_label = QLabel("S.K.Y.NET - Simulate. Know. Yield. Netowrk")
         font = QFont("Eurostile", int(32 * self.ui_scale), QFont.Bold)
 
         # If Eurostile is not available, fallback to Orbitron or Rajdhani if bundled
