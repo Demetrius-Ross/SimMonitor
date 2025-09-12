@@ -232,21 +232,12 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(int, int, int)
     def update_simulator_state(self, sim_id, motion, ramp):
-        self.last_serial_update = time.time()  # update global timestamp
-
+        self.serial_timeout.start()  # ← resets the timeout
         if sim_id in self.simulator_cards:
             self.simulator_cards[sim_id].update_state(motion, ramp)
-            self.simulator_cards[sim_id].set_offline(False)
+            self.simulator_cards[sim_id].set_offline(False)  # ensure online
+        self.overlay.hide()
 
-
-    def check_serial_timeout(self):
-        # If no message received for 12 seconds, consider receiver offline
-        if time.time() - self.last_serial_update > 12:
-            self.overlay.show()
-            for card in self.simulator_cards.values():
-                card.set_offline(True)
-        else:
-            self.overlay.hide()
 
 
     @pyqtSlot(int, bool)
