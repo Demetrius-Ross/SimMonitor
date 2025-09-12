@@ -16,7 +16,8 @@ from simulator_card import SimulatorCard
 from utils.serial_handler_qt import start_serial_thread, set_debug_mode, stop_serial_thread
 
 from utils.config_io import load_cfg, save_cfg
-from utils.layout_io import write_layout, read_layout       
+from utils.layout_io import write_layout, read_layout
+import time       
 
 
 NUM_SIMULATORS = 12
