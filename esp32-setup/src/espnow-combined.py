@@ -9,6 +9,7 @@ sta.active(True)
 sta.config(channel=6)
 ap = network.WLAN(network.AP_IF)
 ap.active(True)
+ap.config(essid="SimNode", hidden=1)
 esp = espnow.ESPNow()
 esp.active(True)
 role_pins = [machine.Pin(18, machine.Pin.IN), machine.Pin(19, machine.Pin.IN)]

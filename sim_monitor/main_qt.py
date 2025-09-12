@@ -238,6 +238,14 @@ class MainWindow(QMainWindow):
             self.simulator_cards[sim_id].set_offline(False)  # ensure online
         self.overlay.hide()
 
+    @pyqtSlot(int)
+    def update_simulator_heartbeat(self, sim_id):
+        self.last_serial_update = time.time()  # global receiver alive
+        if sim_id in self.simulator_cards:
+            card = self.simulator_cards[sim_id]
+            card.last_update_timer.start()  # reset per-card timer
+            card.set_offline(False)
+
 
 
     @pyqtSlot(int, bool)

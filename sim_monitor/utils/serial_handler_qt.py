@@ -124,23 +124,36 @@ def start_serial_thread(sim_cards: dict, *,
 
                 logger.debug(f"RX: {raw}")
 
-                m = data_regex.match(raw) or heartbeat_regex.match(raw)
-                if not m:
-                    continue
+                data_match = data_regex.match(raw)
+                hb_match = heartbeat_regex.match(raw)
 
-                sid  = int(m.group(1))
-                ramp = int(m.group(2))
-                mot  = int(m.group(3))
+                if data_match:
+                    sid  = int(data_match.group(1))
+                    ramp = int(data_match.group(2))
+                    mot  = int(data_match.group(3))
 
-                # dispatch *safely* back into Qt’s main thread
-                QMetaObject.invokeMethod(
-                    update_sim_fn.__self__,
-                    "update_simulator_state",
-                    Qt.QueuedConnection,
-                    Q_ARG(int, sid),
-                    Q_ARG(int, mot),
-                    Q_ARG(int, ramp)
-                )
+                    # dispatch data update (motion/ramp)
+                    QMetaObject.invokeMethod(
+                        update_sim_fn.__self__,
+                        "update_simulator_state",
+                        Qt.QueuedConnection,
+                        Q_ARG(int, sid),
+                        Q_ARG(int, mot),
+                        Q_ARG(int, ramp)
+                    )
+
+                elif hb_match:
+                    sid  = int(hb_match.group(1))
+                    # heartbeat only: reset timers but don't force motion/ramp update
+                    QMetaObject.invokeMethod(
+                        update_sim_fn.__self__,
+                        "update_simulator_heartbeat",
+                        Qt.QueuedConnection,
+                        Q_ARG(int, sid)
+                    )
+
+                else:
+                    logger.debug(f"Ignored line: {raw}")
 
         except Exception as exc:
             logger.error(f"Serial worker error: {exc}")

@@ -14,7 +14,7 @@ detect_com_port() {
     echo "ℹ️ Available Ports: $AVAILABLE_PORTS"
 
     # Check for COM6 or COM10
-    for PORT in COM6 COM10; do
+    for PORT in COM6 COM7 COM8 COM9 COM5 COM3; do
         if echo "$AVAILABLE_PORTS" | grep -q "$PORT"; then
             ESP_DEVICE=$PORT
             echo "✅ ESP32 detected at $ESP_DEVICE"
