@@ -16,8 +16,7 @@ from simulator_card import SimulatorCard
 from utils.serial_handler_qt import start_serial_thread, set_debug_mode, stop_serial_thread
 
 from utils.config_io import load_cfg, save_cfg
-from utils.layout_io import write_layout, read_layout
-import time       
+from utils.layout_io import write_layout, read_layout       
 
 
 NUM_SIMULATORS = 12
@@ -85,12 +84,6 @@ class MainWindow(QMainWindow):
         self.ui_scale = max(0.5, screen_h / 1080) # CHANGE SCALE HERE
         self.is_fullscreen = True
         self.simulator_cards = {}
-        self.serial_timeout = QTimer(self)
-        self.serial_timeout.setInterval(10000)  # 10 seconds
-        self.serial_timeout.setSingleShot(True)
-        self.serial_timeout.timeout.connect(self.on_serial_disconnected)
-        self.serial_timeout.start()  # start immediately
-
 
 
         # -- Central Widget --
@@ -142,13 +135,6 @@ class MainWindow(QMainWindow):
         """)
         self.project_label.setAlignment(Qt.AlignVCenter)
 
-       
-
-        self.overlay = QLabel(self.centralWidget())
-        self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 160);")
-        self.overlay.hide()
-        self.overlay.setGeometry(0, 0, self.width(), self.height())
-        self.overlay.setAttribute(Qt.WA_TransparentForMouseEvents)
 
 
         font_size1 = int(12*self.ui_scale)
@@ -233,25 +219,8 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(int, int, int)
     def update_simulator_state(self, sim_id, motion, ramp):
-        # Always reset the global timestamp
-        self.last_serial_update = time.time()
-
         if sim_id in self.simulator_cards:
-            card = self.simulator_cards[sim_id]
-            card.update_state(motion, ramp)
-            # Do NOT forcibly set offline=False here; update_state will handle the timer
-
-
-    @pyqtSlot(int)
-    def update_simulator_heartbeat(self, sim_id):
-        self.last_serial_update = time.time()  # reset global overlay timeout
-        if sim_id in self.simulator_cards:
-            card = self.simulator_cards[sim_id]
-            # Reset offline timer and mark online
-            card.last_update_timer.start()
-            card.set_offline(False)
-
-
+            self.simulator_cards[sim_id].update_state(motion, ramp)
 
     @pyqtSlot(int, bool)
     def set_simulator_offline(self, sim_id, offline=True):
@@ -418,10 +387,6 @@ class MainWindow(QMainWindow):
         self.date_label.setText(date_str)
         self.clock_label.setText(time_str)
 
-    def on_serial_disconnected(self):
-        self.overlay.show()
-        for card in self.simulator_cards.values():
-            card.set_offline(True)
 
 
 

@@ -22,7 +22,7 @@ except ImportError:
 #  Configuration  ------------------------------------------------------
 # ----------------------------------------------------------------------
 DEBUG_MODE   = False          # toggled by main_qt via set_debug_mode()
-SERIAL_PORT  = ""         # leave "" for “auto”, or hard-wire (e.g. COM3)
+SERIAL_PORT  = "COM3"         # leave "" for “auto”, or hard-wire (e.g. COM3)
 BAUD_RATE    = 115200
 READ_TIMEOUT = 1.0            # seconds (blocks inside the worker-thread)
 
@@ -77,8 +77,7 @@ def start_serial_thread(sim_cards: dict, *,
         ]
         def __init__(self):
             self.idx = 0
-            self.port = "MOCK"
-        def readline(self):
+        def readline(self):                          # emulate blocking read
             time.sleep(2)
             l = self.lines[self.idx % len(self.lines)]
             self.idx += 1
@@ -87,63 +86,37 @@ def start_serial_thread(sim_cards: dict, *,
         def is_open(self): return True
         def close(self): pass
 
-
     #  --- open port ---------------------------------------------------
     def open_any_serial_port(preferred: str, baud: int):
-        """
-        Open a serial port automatically:
-        - Try the preferred port first (if specified)
-        - Scan all /dev/ttyUSB* and /dev/ttyAMA* (Linux) or COM* (Windows)
-        - Return a live serial object
-        """
-
         if DEBUG_MODE or serial is None:
-            logger.info("Using MockSerial (DEBUG mode)")
+            logger.info("Using MockSerial   (DEBUG mode)")
             return MockSerial()
 
-        tried_ports = []
-
-        # 1) Try preferred port
-        if preferred:
-            try:
+        # 1) try the preferred one first
+        try:
+            if preferred:
                 s = serial.Serial(preferred, baud, timeout=READ_TIMEOUT)
-                logger.info(f"Opened preferred port: {preferred}")
+                logger.info(f"Opened preferred port {preferred}")
                 return s
-            except Exception as e:
-                logger.warning(f"Preferred port failed: {e}")
-                tried_ports.append(preferred)
+        except Exception as exc:
+            logger.warning(f"Preferred port failed: {exc}")
 
-        # 2) Scan available ports
-        ports = [p.device for p in serial.tools.list_ports.comports()]
-        logger.info(f"Available ports: {ports}")
-        for port in ports:
-            if port in tried_ports:
-                continue
+        # 2) scan everything the OS can see
+        logger.info("Scanning serial ports …")
+        for p in serial.tools.list_ports.comports():
             try:
-                s = serial.Serial(port, baud, timeout=READ_TIMEOUT)
-                logger.info(f"Opened port: {port}")
+                s = serial.Serial(p.device, baud, timeout=READ_TIMEOUT)
+                logger.info(f"Opened {p.device}")
                 return s
-            except Exception as e:
-                logger.warning(f"Port {port} failed: {e}")
-
-        # 3) No port found
-        raise IOError("No serial ports available. Make sure your Raspberry Pi is connected.")
-
+            except Exception:
+                continue
+        raise IOError("No serial ports available")
 
     #  --- worker thread ----------------------------------------------
     def reader_thread():
         ser = None
-        while _RUN_FLAG:
-            try:
-                # Attempt to open any available serial port
-                ser = open_any_serial_port(SERIAL_PORT, BAUD_RATE)
-                logger.info(f"Serial port opened: {ser.port}")
-                break
-            except IOError as e:
-                logger.warning(f"No serial ports available, retrying in 3s: {e}")
-                time.sleep(3)  # Wait before retrying
-
         try:
+            ser = open_any_serial_port(SERIAL_PORT, BAUD_RATE)
             while _RUN_FLAG:
                 raw = ser.readline().decode(errors="replace").strip()
                 if not raw:
@@ -151,38 +124,23 @@ def start_serial_thread(sim_cards: dict, *,
 
                 logger.debug(f"RX: {raw}")
 
-                data_match = data_regex.match(raw)
-                hb_match = heartbeat_regex.match(raw)
+                m = data_regex.match(raw) or heartbeat_regex.match(raw)
+                if not m:
+                    continue
 
-                if data_match:
-                    # Parse DATA message
-                    sid  = int(data_match.group(1))
-                    ramp = int(data_match.group(2))
-                    mot  = int(data_match.group(3))
+                sid  = int(m.group(1))
+                ramp = int(m.group(2))
+                mot  = int(m.group(3))
 
-                    # Update GUI with motion/ramp state
-                    QMetaObject.invokeMethod(
-                        update_sim_fn.__self__,
-                        "update_simulator_state",
-                        Qt.QueuedConnection,
-                        Q_ARG(int, sid),
-                        Q_ARG(int, mot),
-                        Q_ARG(int, ramp)
-                    )
-
-                elif hb_match:
-                    # Parse HEARTBEAT message
-                    sid  = int(hb_match.group(1))
-                    # Update GUI to reset timers, no motion/ramp change
-                    QMetaObject.invokeMethod(
-                        update_sim_fn.__self__,
-                        "update_simulator_heartbeat",
-                        Qt.QueuedConnection,
-                        Q_ARG(int, sid)
-                    )
-
-                else:
-                    logger.debug(f"Ignored line: {raw}")
+                # dispatch *safely* back into Qt’s main thread
+                QMetaObject.invokeMethod(
+                    update_sim_fn.__self__,
+                    "update_simulator_state",
+                    Qt.QueuedConnection,
+                    Q_ARG(int, sid),
+                    Q_ARG(int, mot),
+                    Q_ARG(int, ramp)
+                )
 
         except Exception as exc:
             logger.error(f"Serial worker error: {exc}")
@@ -190,7 +148,6 @@ def start_serial_thread(sim_cards: dict, *,
             if ser and ser.is_open:
                 ser.close()
                 logger.info("Serial port closed.")
-
 
     #  --- launch! -----------------------------------------------------
     threading.Thread(target=reader_thread, daemon=True).start()

@@ -85,11 +85,6 @@ class SimulatorCard(QWidget):
         self.ramp_disconnect_label_timer = QTimer(self)
         self.ramp_disconnect_label_timer.setSingleShot(True)
         self.ramp_disconnect_label_timer.timeout.connect(self.clear_ramp_label_override)
-       
-        self.last_update_timer = QTimer(self)
-        self.last_update_timer.setSingleShot(True)
-        self.last_update_timer.setInterval(15000)  # 15 seconds with no updates = offline
-        self.last_update_timer.timeout.connect(self._mark_self_offline)
 
 
         # Full card size
@@ -191,8 +186,6 @@ class SimulatorCard(QWidget):
         self.overlay.setGeometry(0, 0, self.card.width(), self.card.height())
         self.apply_overlay_mask()
 
-    def _mark_self_offline(self):
-        self.set_offline(True)
 
 
 
@@ -346,16 +339,8 @@ class SimulatorCard(QWidget):
     def update_state(self, motion, ramp):
         self.motion_state = motion
         self.ramp_state = ramp
-
-        # Always mark the card online
         self.set_offline(False)
 
-        # Reset the per-card offline timer
-        if self.last_update_timer.isActive():
-            self.last_update_timer.stop()
-        self.last_update_timer.start()
-
-        # Ramp logic
         if ramp == 0:
             if not self.ramp_disconnect_timer.isActive():
                 self.ramp_disconnect_timer.start(15000)
@@ -364,9 +349,6 @@ class SimulatorCard(QWidget):
             self.ramp_disconnected = False
 
         self.update_display()
-
-
-
 
 
 
