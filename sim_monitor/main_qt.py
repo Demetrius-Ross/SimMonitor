@@ -141,7 +141,7 @@ class MainWindow(QMainWindow):
         """)
         self.project_label.setAlignment(Qt.AlignVCenter)
 
-        self.last_serial_update = time.time()
+       
 
         self.overlay = QLabel(self.centralWidget())
         self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 160);")
