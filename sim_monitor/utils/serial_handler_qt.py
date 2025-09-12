@@ -77,7 +77,8 @@ def start_serial_thread(sim_cards: dict, *,
         ]
         def __init__(self):
             self.idx = 0
-        def readline(self):                          # emulate blocking read
+            self.port = "MOCK"
+        def readline(self):
             time.sleep(2)
             l = self.lines[self.idx % len(self.lines)]
             self.idx += 1
@@ -85,6 +86,7 @@ def start_serial_thread(sim_cards: dict, *,
         @property
         def is_open(self): return True
         def close(self): pass
+
 
     #  --- open port ---------------------------------------------------
     def open_any_serial_port(preferred: str, baud: int):
