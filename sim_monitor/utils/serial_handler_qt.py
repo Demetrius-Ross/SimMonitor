@@ -91,43 +91,43 @@ def start_serial_thread(sim_cards: dict, *,
     #  --- open port ---------------------------------------------------
     def open_any_serial_port(preferred: str, baud: int):
         """
-        Attempts to open a serial port.
-        - If `preferred` is provided, tries it first.
-        - If it fails, scans all available ports.
-        - Returns a live serial object or raises IOError if none available.
+        Open a serial port automatically:
+        - Try the preferred port first (if specified)
+        - Scan all /dev/ttyUSB* and /dev/ttyAMA* (Linux) or COM* (Windows)
+        - Return a live serial object
         """
 
         if DEBUG_MODE or serial is None:
-            logger.info("Using MockSerial   (DEBUG mode)")
+            logger.info("Using MockSerial (DEBUG mode)")
             return MockSerial()
 
         tried_ports = []
 
-        # 1) Try preferred port first
+        # 1) Try preferred port
         if preferred:
             try:
                 s = serial.Serial(preferred, baud, timeout=READ_TIMEOUT)
-                logger.info(f"Opened preferred port {preferred}")
+                logger.info(f"Opened preferred port: {preferred}")
                 return s
-            except Exception as exc:
-                logger.warning(f"Preferred port {preferred} failed: {exc}")
+            except Exception as e:
+                logger.warning(f"Preferred port failed: {e}")
                 tried_ports.append(preferred)
 
-        # 2) Scan all detected serial ports
+        # 2) Scan available ports
         ports = [p.device for p in serial.tools.list_ports.comports()]
-        logger.info(f"Scanning serial ports: {ports}")
+        logger.info(f"Available ports: {ports}")
         for port in ports:
             if port in tried_ports:
                 continue
             try:
                 s = serial.Serial(port, baud, timeout=READ_TIMEOUT)
-                logger.info(f"Opened serial port {port}")
+                logger.info(f"Opened port: {port}")
                 return s
-            except Exception as exc:
-                logger.warning(f"Port {port} failed: {exc}")
+            except Exception as e:
+                logger.warning(f"Port {port} failed: {e}")
 
-        # 3) No port available
-        raise IOError("No serial ports available. Check connection to Raspberry Pi.")
+        # 3) No port found
+        raise IOError("No serial ports available. Make sure your Raspberry Pi is connected.")
 
 
     #  --- worker thread ----------------------------------------------
