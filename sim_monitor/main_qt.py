@@ -84,6 +84,11 @@ class MainWindow(QMainWindow):
         self.ui_scale = max(0.5, screen_h / 1080) # CHANGE SCALE HERE
         self.is_fullscreen = True
         self.simulator_cards = {}
+        self.serial_timeout = QTimer(self)
+        self.serial_timeout.setInterval(10000)  # 10 seconds
+        self.serial_timeout.setSingleShot(True)
+        self.serial_timeout.timeout.connect(self.on_serial_disconnected)
+
 
 
         # -- Central Widget --
@@ -135,6 +140,11 @@ class MainWindow(QMainWindow):
         """)
         self.project_label.setAlignment(Qt.AlignVCenter)
 
+        self.overlay = QLabel(self.centralWidget())
+        self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 160);")
+        self.overlay.hide()
+        self.overlay.setGeometry(0, 0, self.width(), self.height())
+        self.overlay.setAttribute(Qt.WA_TransparentForMouseEvents)
 
 
         font_size1 = int(12*self.ui_scale)
@@ -219,8 +229,11 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(int, int, int)
     def update_simulator_state(self, sim_id, motion, ramp):
+        self.serial_timeout.start()  # ← resets the timeout
         if sim_id in self.simulator_cards:
             self.simulator_cards[sim_id].update_state(motion, ramp)
+            self.simulator_cards[sim_id].set_offline(False)  # ensure online
+        self.overlay.hide()
 
     @pyqtSlot(int, bool)
     def set_simulator_offline(self, sim_id, offline=True):
@@ -387,6 +400,10 @@ class MainWindow(QMainWindow):
         self.date_label.setText(date_str)
         self.clock_label.setText(time_str)
 
+    def on_serial_disconnected(self):
+        self.overlay.show()
+        for card in self.simulator_cards.values():
+            card.set_offline(True)
 
 
 
