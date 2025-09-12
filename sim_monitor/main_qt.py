@@ -88,6 +88,7 @@ class MainWindow(QMainWindow):
         self.serial_timeout.setInterval(10000)  # 10 seconds
         self.serial_timeout.setSingleShot(True)
         self.serial_timeout.timeout.connect(self.on_serial_disconnected)
+        self.serial_timeout.start()  # start immediately
 
 
 
@@ -139,6 +140,8 @@ class MainWindow(QMainWindow):
             letter-spacing: 4px;
         """)
         self.project_label.setAlignment(Qt.AlignVCenter)
+
+        self.last_serial_update = time.time()
 
         self.overlay = QLabel(self.centralWidget())
         self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 160);")
@@ -229,11 +232,22 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(int, int, int)
     def update_simulator_state(self, sim_id, motion, ramp):
-        self.serial_timeout.start()  # ← resets the timeout
+        self.last_serial_update = time.time()  # update global timestamp
+
         if sim_id in self.simulator_cards:
             self.simulator_cards[sim_id].update_state(motion, ramp)
-            self.simulator_cards[sim_id].set_offline(False)  # ensure online
-        self.overlay.hide()
+            self.simulator_cards[sim_id].set_offline(False)
+
+
+    def check_serial_timeout(self):
+        # If no message received for 12 seconds, consider receiver offline
+        if time.time() - self.last_serial_update > 12:
+            self.overlay.show()
+            for card in self.simulator_cards.values():
+                card.set_offline(True)
+        else:
+            self.overlay.hide()
+
 
     @pyqtSlot(int, bool)
     def set_simulator_offline(self, sim_id, offline=True):
