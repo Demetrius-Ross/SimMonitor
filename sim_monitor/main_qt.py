@@ -17,7 +17,7 @@ from utils.serial_handler_qt import start_serial_thread, set_debug_mode, stop_se
 
 from utils.config_io import load_cfg, save_cfg
 from utils.layout_io import write_layout, read_layout       
-import time
+
 
 NUM_SIMULATORS = 12
 COLUMNS = 6
@@ -84,20 +84,13 @@ class MainWindow(QMainWindow):
         self.ui_scale = max(0.5, screen_h / 1080) # CHANGE SCALE HERE
         self.is_fullscreen = True
         self.simulator_cards = {}
-        self.last_serial_update = time.time()
-
-        # Full-screen overlay
-        self.overlay = QLabel(self.centralWidget())
-        self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 160);")
-        self.overlay.hide()
-        self.overlay.setGeometry(0, 0, self.width(), self.height())
-        self.overlay.setAttribute(Qt.WA_TransparentForMouseEvents)
-
-        # Repeating timer to check for receiver disconnect
         self.serial_timeout = QTimer(self)
-        self.serial_timeout.setInterval(1000)  # check every second
-        self.serial_timeout.timeout.connect(self.check_serial_timeout)
-        self.serial_timeout.start()
+        self.serial_timeout.setInterval(10000)  # 10 seconds
+        self.serial_timeout.setSingleShot(True)
+        self.serial_timeout.timeout.connect(self.on_serial_disconnected)
+        self.serial_timeout.start()  # start immediately
+
+
 
         # -- Central Widget --
         central_widget = QWidget()
@@ -147,6 +140,14 @@ class MainWindow(QMainWindow):
             letter-spacing: 4px;
         """)
         self.project_label.setAlignment(Qt.AlignVCenter)
+
+        self.last_serial_update = time.time()
+
+        self.overlay = QLabel(self.centralWidget())
+        self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 160);")
+        self.overlay.hide()
+        self.overlay.setGeometry(0, 0, self.width(), self.height())
+        self.overlay.setAttribute(Qt.WA_TransparentForMouseEvents)
 
 
         font_size1 = int(12*self.ui_scale)
