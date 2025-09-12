@@ -88,35 +88,60 @@ def start_serial_thread(sim_cards: dict, *,
 
     #  --- open port ---------------------------------------------------
     def open_any_serial_port(preferred: str, baud: int):
+        """
+        Attempts to open a serial port.
+        - If `preferred` is provided, tries it first.
+        - If it fails, scans all available ports.
+        - Returns a live serial object or raises IOError if none available.
+        """
+
         if DEBUG_MODE or serial is None:
             logger.info("Using MockSerial   (DEBUG mode)")
             return MockSerial()
 
-        # 1) try the preferred one first
-        try:
-            if preferred:
+        tried_ports = []
+
+        # 1) Try preferred port first
+        if preferred:
+            try:
                 s = serial.Serial(preferred, baud, timeout=READ_TIMEOUT)
                 logger.info(f"Opened preferred port {preferred}")
                 return s
-        except Exception as exc:
-            logger.warning(f"Preferred port failed: {exc}")
+            except Exception as exc:
+                logger.warning(f"Preferred port {preferred} failed: {exc}")
+                tried_ports.append(preferred)
 
-        # 2) scan everything the OS can see
-        logger.info("Scanning serial ports …")
-        for p in serial.tools.list_ports.comports():
-            try:
-                s = serial.Serial(p.device, baud, timeout=READ_TIMEOUT)
-                logger.info(f"Opened {p.device}")
-                return s
-            except Exception:
+        # 2) Scan all detected serial ports
+        ports = [p.device for p in serial.tools.list_ports.comports()]
+        logger.info(f"Scanning serial ports: {ports}")
+        for port in ports:
+            if port in tried_ports:
                 continue
-        raise IOError("No serial ports available")
+            try:
+                s = serial.Serial(port, baud, timeout=READ_TIMEOUT)
+                logger.info(f"Opened serial port {port}")
+                return s
+            except Exception as exc:
+                logger.warning(f"Port {port} failed: {exc}")
+
+        # 3) No port available
+        raise IOError("No serial ports available. Check connection to Raspberry Pi.")
+
 
     #  --- worker thread ----------------------------------------------
     def reader_thread():
         ser = None
+        while _RUN_FLAG:
+            try:
+                # Attempt to open any available serial port
+                ser = open_any_serial_port(SERIAL_PORT, BAUD_RATE)
+                logger.info(f"Serial port opened: {ser.port}")
+                break
+            except IOError as e:
+                logger.warning(f"No serial ports available, retrying in 3s: {e}")
+                time.sleep(3)  # Wait before retrying
+
         try:
-            ser = open_any_serial_port(SERIAL_PORT, BAUD_RATE)
             while _RUN_FLAG:
                 raw = ser.readline().decode(errors="replace").strip()
                 if not raw:
@@ -128,11 +153,12 @@ def start_serial_thread(sim_cards: dict, *,
                 hb_match = heartbeat_regex.match(raw)
 
                 if data_match:
+                    # Parse DATA message
                     sid  = int(data_match.group(1))
                     ramp = int(data_match.group(2))
                     mot  = int(data_match.group(3))
 
-                    # dispatch data update (motion/ramp)
+                    # Update GUI with motion/ramp state
                     QMetaObject.invokeMethod(
                         update_sim_fn.__self__,
                         "update_simulator_state",
@@ -143,8 +169,9 @@ def start_serial_thread(sim_cards: dict, *,
                     )
 
                 elif hb_match:
+                    # Parse HEARTBEAT message
                     sid  = int(hb_match.group(1))
-                    # heartbeat only: reset timers but don't force motion/ramp update
+                    # Update GUI to reset timers, no motion/ramp change
                     QMetaObject.invokeMethod(
                         update_sim_fn.__self__,
                         "update_simulator_heartbeat",
@@ -161,6 +188,7 @@ def start_serial_thread(sim_cards: dict, *,
             if ser and ser.is_open:
                 ser.close()
                 logger.info("Serial port closed.")
+
 
     #  --- launch! -----------------------------------------------------
     threading.Thread(target=reader_thread, daemon=True).start()
