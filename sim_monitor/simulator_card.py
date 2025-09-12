@@ -344,26 +344,26 @@ class SimulatorCard(QWidget):
 
 
     def update_state(self, motion, ramp):
+        # Update motion/ramp
         self.motion_state = motion
         self.ramp_state = ramp
 
-        # Ensure card is online
-        self.set_offline(False)
-
-        # Start the per-card offline timer only if card is online
+        # Reset the per-card offline timer on any data/heartbeat update
         if self.last_update_timer.isActive():
             self.last_update_timer.stop()
         self.last_update_timer.start()
 
-        # Ramp logic (existing)
+        # Ramp disconnect logic
         if ramp == 0:
             if not self.ramp_disconnect_timer.isActive():
-                self.ramp_disconnect_timer.start(15000)
+                self.ramp_disconnect_timer.start(15000)  # 15s until ramp disconnected
         else:
             self.ramp_disconnect_timer.stop()
             self.ramp_disconnected = False
 
+        # Update the card visuals
         self.update_display()
+
 
 
 

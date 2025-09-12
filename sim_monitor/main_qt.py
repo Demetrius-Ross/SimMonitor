@@ -233,19 +233,27 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(int, int, int)
     def update_simulator_state(self, sim_id, motion, ramp):
-        self.serial_timeout.start()  # ← resets the timeout
+        # Always reset the global timestamp
+        self.last_serial_update = time.time()
+
         if sim_id in self.simulator_cards:
-            self.simulator_cards[sim_id].update_state(motion, ramp)
-            self.simulator_cards[sim_id].set_offline(False)  # ensure online
-        self.overlay.hide()
+            card = self.simulator_cards[sim_id]
+            card.update_state(motion, ramp)
+            # Do NOT forcibly set offline=False here; update_state will handle the timer
+
 
     @pyqtSlot(int)
     def update_simulator_heartbeat(self, sim_id):
-        self.last_serial_update = time.time()  # global receiver alive
+        # Heartbeat counts as "activity"
+        self.last_serial_update = time.time()
+
         if sim_id in self.simulator_cards:
             card = self.simulator_cards[sim_id]
-            card.last_update_timer.start()  # reset per-card timer
-            card.set_offline(False)
+            # Only reset the offline timer, don't touch motion/ramp state
+            if card.last_update_timer.isActive():
+                card.last_update_timer.stop()
+            card.last_update_timer.start()
+
 
 
 
