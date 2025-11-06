@@ -1,0 +1,5 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "dsub")(type "KiCad")(uri "C:/Users/p00802830/Desktop/CodingProjects/SimMonitor/mcc_harness/symbols/2025-06-24_12-10-27.kicad_sym")(options "")(descr ""))
+  (lib (name "dsub1")(type "KiCad")(uri "C:/Users/p00802830/Desktop/CodingProjects/SimMonitor/mcc_harness/symbols/LD09S24A4GV00LF.kicad_sym")(options "")(descr ""))
+)

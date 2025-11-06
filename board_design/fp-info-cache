@@ -1,4 +1,4 @@
-24779179850895906
+24791403156802689
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -99540,6 +99540,27 @@ CAPC3216X180N
 2
 2
 footprints
+CONN02_EBBA_10X7P6_ADM
+
+EBBA-02-C-SS-BU 
+0
+2
+2
+footprints
+CONN_1-2834011-3_TEC
+
+1-2834011-3 
+0
+3
+3
+footprints
+CONN_1985030_PXC
+
+1985030 
+0
+9
+9
+footprints
 CONN_BM04B-SRSS-TB_SPK
 
 PRT-16766 
@@ -99567,6 +99588,20 @@ CONV_REC5A-2405SW_H2
 0
 8
 8
+footprints
+CUI_TB001-500-04BE
+
+
+0
+4
+4
+footprints
+CUI_TB001-500-09BE
+
+
+0
+9
+9
 footprints
 DO214AASMB_CIP
 
@@ -99616,6 +99651,20 @@ PHOENIX_1757255
 0
 3
 3
+footprints
+PHOENIX_1770979
+
+
+0
+8
+8
+footprints
+PHOENIX_1989764
+
+
+0
+4
+4
 footprints
 PTC_RESET_FUSE
 
