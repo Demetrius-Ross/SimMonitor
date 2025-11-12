@@ -56,6 +56,7 @@ echo "2) Erase flash and install new MicroPython firmware"
 echo "3) Connect to ESP32 using minicom"
 echo "4) View logs using mpremote repl"
 echo "5) Run GPIO test script"
+echo "6) Deploy 'Telemetry.py' test script"
 read -p "Enter choice (1/2/3/4/5): " OPTION
 
 case $OPTION in
@@ -135,6 +136,38 @@ case $OPTION in
         echo "🔧 Running GPIO test..."
         mpremote connect $ESP_DEVICE fs cp gpio_test.py :gpio_test.py
         mpremote connect $ESP_DEVICE exec "import gpio_test"
+        ;;
+
+    6)
+        FILE="telemetry.py"
+        echo "🚀 Deploying $FILE to ESP32 as main.py..."
+
+        # Step 1: Ensure MicroPython is installed
+        echo "🔍 Checking if MicroPython is installed..."
+        mpremote connect $ESP_DEVICE exec "print('MicroPython detected')" || {
+            echo "❌ MicroPython not detected. Please flash MicroPython first."
+            pause
+            exit 1
+        }
+
+        # Step 2: Clean old files before flashing
+        echo "🧹 Cleaning old files..."
+        mpremote connect $ESP_DEVICE fs rm -r /main.py /gpio_test.py 2>/dev/null
+
+        # Step 3: Copy the combined script to ESP32
+        echo "📂 Uploading $FILE as main.py..."
+        mpremote connect $ESP_DEVICE fs cp $FILE :/main.py
+
+        # Step 4: Copy gpio_test.py
+        echo "📂 Uploading gpio_test.py..."
+        mpremote connect $ESP_DEVICE fs cp gpio_test.py :gpio_test.py
+
+        # Step 5: Reset ESP32
+        echo "🔄 Resetting ESP32..."
+        mpremote connect $ESP_DEVICE reset
+
+        echo "✅ Deployment complete! $FILE has been set as main.py"
+        echo "📌 You can now monitor the ESP32 logs using: ./deploy_esp32.sh 4"
         ;;
 
     *)
