@@ -4,7 +4,7 @@ import ds18x20
 import time
 
 # ====== CONFIG ======
-DATA_PIN = 34   # change to your pin if needed
+DATA_PIN = 19   # change to your pin if needed
 
 # Setup OneWire bus
 dat = machine.Pin(DATA_PIN)
