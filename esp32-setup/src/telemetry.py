@@ -1,7 +1,7 @@
 #Telemetry Test
 from machine import Pin, I2C, ADC
 import time
-from ssd1306 import SSD1306_I2C
+from sh1106 import SH1106_I2C
 
 # -----------------------------------------------------
 # I²C SETUP (OLED + ADXL345)
@@ -17,7 +17,7 @@ OLED_ADDR = 0x3C
 # -----------------------------------------------------
 # OLED DISPLAY
 # -----------------------------------------------------
-oled = SSD1306_I2C(128, 64, i2c, addr=OLED_ADDR)
+oled = SH1106_I2C(128, 32, i2c, addr=OLED_ADDR)
 
 # -----------------------------------------------------
 # LM35 TEMPERATURE SENSOR (Analog)
