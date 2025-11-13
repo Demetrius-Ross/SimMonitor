@@ -89,6 +89,7 @@ while True:
             c = ds.read_temp(roms[0])
             f = c * 9/5 + 32
             temp_text = "{:.1f}C".format(c)
+            temp_text_f = "{:.1f}F".format(f)
         except:
             c = None
             temp_text = "ERR"
@@ -105,6 +106,7 @@ while True:
     # ---- OLED OUTPUT ----
     oled.fill(0)
     oled.text("T: {}".format(temp_text), 0, 0)
+    oled.text("T: {}".format(temp_text_f), 64, 0)
 
     if xg is not None:
         oled.text("X:{:+.2f}".format(xg), 0, 12)
