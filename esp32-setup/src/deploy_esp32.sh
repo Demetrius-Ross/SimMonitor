@@ -57,7 +57,7 @@ echo "3) Connect to ESP32 using minicom"
 echo "4) View logs using mpremote repl"
 echo "5) Run GPIO test script"
 echo "6) Deploy 'Telemetry.py' test script"
-read -p "Enter choice (1/2/3/4/5): " OPTION
+read -p "Enter choice (1/2/3/4/5/6): " OPTION
 
 case $OPTION in
     1)
@@ -161,6 +161,10 @@ case $OPTION in
         # Step 4: Copy gpio_test.py
         echo "📂 Uploading gpio_test.py..."
         mpremote connect $ESP_DEVICE fs cp gpio_test.py :gpio_test.py
+
+        # Step 5: Copy driver onto esp32
+        echo "📂 Uploading ssd1306 screen driver ..."
+        mpremote connect $ESP_DEVICE fs cp ssd1306.py :ssd1306.py
 
         # Step 5: Reset ESP32
         echo "🔄 Resetting ESP32..."
