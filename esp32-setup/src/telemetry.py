@@ -7,7 +7,7 @@ import ssd1306
 
 # ========== OLED SETUP ==========
 OLED_WIDTH  = 128
-OLED_HEIGHT = 64
+OLED_HEIGHT = 32
 SDA_PIN  = 21
 SCL_PIN  = 22
 
