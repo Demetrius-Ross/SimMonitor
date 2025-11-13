@@ -164,7 +164,7 @@ case $OPTION in
 
         # Step 5: Copy driver onto esp32
         echo "📂 Uploading ssd1306 screen driver ..."
-        mpremote connect $ESP_DEVICE fs cp sh1106.py :sh1106.py
+        mpremote connect $ESP_DEVICE fs cp ssd1306.py :ssd1306.py
 
         # Step 5: Reset ESP32
         echo "🔄 Resetting ESP32..."
