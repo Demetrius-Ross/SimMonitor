@@ -1,4 +1,4 @@
-24805501811608147
+24828415800761351
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -99519,6 +99519,34 @@ Varistor VF
 2
 2
 footprints
+20_pin_90
+
+XC5A-2022 
+0
+20
+20
+footprints
+20_pin_straight
+
+XC5B-2021 
+0
+20
+20
+footprints
+AMPHENOL_86094327313755E1LF
+
+
+0
+32
+32
+footprints
+AMPHENOL_86094328314755V1LF
+
+
+0
+32
+32
+footprints
 ASSMANN_A-DF_09_A_KG-T4S
 
 
@@ -99673,6 +99701,13 @@ UHE2A470MPD
 2
 2
 footprints
+PHOENIX_1757242
+
+
+0
+2
+2
+footprints
 PHOENIX_1757255
 
 
@@ -99764,6 +99799,27 @@ RES_ERJP08J334V
 2
 2
 footprints
+SH-7070TB_7P1X7P3_NDC
+
+SH-7070TB 
+0
+6
+6
+footprints
+SH-7070TB_7P1X7P3_NDC-L
+
+SH-7070TB 
+0
+6
+6
+footprints
+SH-7070TB_7P1X7P3_NDC-M
+
+SH-7070TB 
+0
+6
+6
+footprints
 SOD123F
 <li><b>SOD123F</b><hr><ul><li>Plastic surface-mounted package; 2 leads<li><u>JEDEC</u>: --<li><u>IEC</u>: --<li><u>JEITA</u>: --</ul>
 
@@ -99788,6 +99844,41 @@ footprints
 SW
 Resistor SMD 2816 (7142 Metric), square (rectangular) end terminal, IPC_7351 nominal with elongated pad for handsoldering. (Body size from: https://www.vishay.com/docs/30100/wsl.pdf), generated with kicad-footprint-generator
 resistor handsolder
+0
+2
+2
+footprints
+SW_PB400EEQR1BLK
+
+
+0
+4
+4
+footprints
+TO252-3_ROM
+
+BA7815FP-E2 
+0
+3
+3
+footprints
+TO252-3_ROM-L
+
+BA7815FP-E2 
+0
+3
+3
+footprints
+TO252-3_ROM-M
+
+BA7815FP-E2 
+0
+3
+3
+footprints
+WCAP-ATG5_5X11_DXL_
+
+
 0
 2
 2
