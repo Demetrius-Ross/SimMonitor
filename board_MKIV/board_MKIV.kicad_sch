@@ -6571,6 +6571,207 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "CRL1206-FW-R330ELF:CRL1206-FW-R330ELF"
+			(pin_names
+				(offset 1.016)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "R"
+				(at -7.6244 2.5415 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left bottom)
+				)
+			)
+			(property "Value" "CRL1206-FW-R330ELF"
+				(at -7.63 -5.0866 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left bottom)
+				)
+			)
+			(property "Footprint" "CRL1206-FW-R330ELF:RESC3216X70N"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "CRL1206-FW-R330ELF_0_0"
+				(polyline
+					(pts
+						(xy -5.08 0) (xy -4.445 1.905)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -4.445 1.905) (xy -3.175 -1.905)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -3.175 -1.905) (xy -1.905 1.905)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -1.905 1.905) (xy -0.635 -1.905)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -0.635 -1.905) (xy 0.635 1.905)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.635 1.905) (xy 1.905 -1.905)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.905 -1.905) (xy 3.175 1.905)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 3.175 1.905) (xy 4.445 -1.905)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 4.445 -1.905) (xy 5.08 0)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(pin passive line
+					(at -10.16 0 0)
+					(length 5.08)
+					(name "~"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 10.16 0 180)
+					(length 5.08)
+					(name "~"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "DS01C-254-S-03BE:DS01C-254-S-03BE"
 			(pin_names
 				(offset 1.016)
@@ -9963,6 +10164,208 @@
 						(effects
 							(font
 								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "RGB_LED:COM-16347"
+			(pin_names
+				(offset 0.254)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "LED"
+				(at 20.32 10.16 0)
+				(effects
+					(font
+						(size 1.524 1.524)
+					)
+				)
+			)
+			(property "Value" "COM-16347"
+				(at 20.32 7.62 0)
+				(effects
+					(font
+						(size 1.524 1.524)
+					)
+				)
+			)
+			(property "Footprint" "COM-16347_SPK"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+						(italic yes)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "COM-16347"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+						(italic yes)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_locked" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "COM-16347"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "COM-16347_SPK COM-16347_SPK-M COM-16347_SPK-L"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "COM-16347_0_1"
+				(polyline
+					(pts
+						(xy 7.62 5.08) (xy 7.62 -7.62)
+					)
+					(stroke
+						(width 0.127)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 7.62 -7.62) (xy 33.02 -7.62)
+					)
+					(stroke
+						(width 0.127)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 33.02 5.08) (xy 7.62 5.08)
+					)
+					(stroke
+						(width 0.127)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 33.02 -7.62) (xy 33.02 5.08)
+					)
+					(stroke
+						(width 0.127)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(pin power_in line
+					(at 0 0 0)
+					(length 7.62)
+					(name "VDD"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 0 -2.54 0)
+					(length 7.62)
+					(name "DOUT"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at 40.64 0 180)
+					(length 7.62)
+					(name "DIN"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_out line
+					(at 40.64 -2.54 180)
+					(length 7.62)
+					(name "VSS"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
 							)
 						)
 					)
@@ -13418,16 +13821,16 @@
 		(uuid "7f5e9cc0-2945-48cd-bc24-9c244268965e")
 	)
 	(junction
-		(at 127 24.13)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "84398066-9cfd-468e-bb57-dc89402a2274")
-	)
-	(junction
 		(at 220.98 74.93)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "8527b9b9-571e-439e-bff6-088df15036a4")
+	)
+	(junction
+		(at 127 24.13)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "8ba30fe3-d371-4048-b94a-fa1cd8fab61f")
 	)
 	(junction
 		(at 294.64 46.99)
@@ -15209,7 +15612,7 @@
 			)
 		)
 	)
-	(global_label "+24V"
+	(global_label "+VIN-dc"
 		(shape output)
 		(at 223.52 172.72 270)
 		(fields_autoplaced yes)
@@ -15221,7 +15624,7 @@
 		)
 		(uuid "352bdf00-12a6-47dd-8053-554f89ae5b2d")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 223.52 180.7852 90)
+			(at 223.52 184.1115 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -15398,6 +15801,28 @@
 		(uuid "3d7a6c32-5822-4a46-9656-291bd7cf3879")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 246.16 152.4 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "GPIO_27"
+		(shape output)
+		(at 326.39 148.59 90)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "3e495de4-aee7-47b5-83a5-0e07d9531ade")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 326.39 137.7429 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -15618,6 +16043,28 @@
 		(uuid "48f3b7c3-232c-4166-bee6-6da3af1ab8c7")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 334.5929 54.61 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "+VOUT_esp_signal"
+		(shape input)
+		(at 62.23 238.76 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "4e006999-214e-4009-99d2-4585861ef108")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 42.0092 238.76 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -16463,28 +16910,6 @@
 			)
 		)
 	)
-	(global_label "GPIO_27"
-		(shape output)
-		(at 326.39 148.59 90)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "8d23b0b3-3482-452e-9ce5-1cf47375929a")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 326.39 137.7429 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-				(hide yes)
-			)
-		)
-	)
 	(global_label "GPIO_26"
 		(shape output)
 		(at 265.43 219.71 180)
@@ -16547,6 +16972,28 @@
 					(size 1.27 1.27)
 				)
 				(justify left)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "GPIO_27"
+		(shape output)
+		(at 62.23 241.3 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "931db81a-3244-4d5a-b6da-37c46855dfa2")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 51.3829 241.3 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
 				(hide yes)
 			)
 		)
@@ -16837,7 +17284,7 @@
 			)
 		)
 	)
-	(global_label "sim_home_signal"
+	(global_label "sim_home"
 		(shape output)
 		(at 213.36 152.4 180)
 		(fields_autoplaced yes)
@@ -16849,7 +17296,7 @@
 		)
 		(uuid "b46c8a36-f566-413f-a533-79faacf43230")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 194.2884 152.4 0)
+			(at 201.0011 152.4 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -17717,6 +18164,28 @@
 			)
 		)
 	)
+	(global_label "ESP_GND2"
+		(shape output)
+		(at 102.87 241.3 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "f0fd5fd7-7b3d-4e02-9761-9e7b5ec10b81")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 115.5313 241.3 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
 	(global_label "GPIO_18"
 		(shape output)
 		(at 165.1 213.36 180)
@@ -17757,6 +18226,28 @@
 					(size 1.27 1.27)
 				)
 				(justify right)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "GPIO_27"
+		(shape input)
+		(at 102.87 218.44 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "f6a2b328-9526-4cd8-a1d9-14b67d8efa72")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 113.7171 218.44 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
 				(hide yes)
 			)
 		)
@@ -17883,7 +18374,7 @@
 	)
 	(symbol
 		(lib_id "CRG1206F470R:CRG1206F470R")
-		(at 137.16 24.13 0)
+		(at 231.14 93.98 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -17892,7 +18383,7 @@
 		(fields_autoplaced yes)
 		(uuid "0868dc59-2a83-4bfb-9bb7-b5ba650c337e")
 		(property "Reference" "R20"
-			(at 137.16 17.78 0)
+			(at 231.14 87.63 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -17900,7 +18391,7 @@
 			)
 		)
 		(property "Value" "CRG1206F470R"
-			(at 137.16 20.32 0)
+			(at 231.14 90.17 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -17908,7 +18399,7 @@
 			)
 		)
 		(property "Footprint" "footprints:RESC3115X65N"
-			(at 137.16 24.13 0)
+			(at 231.14 93.98 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -17918,7 +18409,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 137.16 24.13 0)
+			(at 231.14 93.98 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -17927,7 +18418,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 137.16 24.13 0)
+			(at 231.14 93.98 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -17942,7 +18433,7 @@
 			(uuid "bb321e31-501b-4cae-9eee-87e15cfc576f")
 		)
 		(instances
-			(project ""
+			(project "board_MKIV"
 				(path "/1521a3d4-d148-4383-b633-021e5ea56970"
 					(reference "R20")
 					(unit 1)
@@ -18638,109 +19129,76 @@
 		)
 	)
 	(symbol
-		(lib_id "ERJP08J105V:ERJP08J105V")
-		(at 231.14 104.14 0)
+		(lib_id "RGB_LED:COM-16347")
+		(at 62.23 238.76 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
 		(dnp no)
 		(fields_autoplaced yes)
-		(uuid "52b00666-03df-4a0a-b513-b69fc73f85b6")
-		(property "Reference" "R22"
-			(at 231.14 97.79 0)
+		(uuid "42685c25-8c1a-46bc-9042-f08942954d13")
+		(property "Reference" "LED1"
+			(at 82.55 228.6 0)
 			(effects
 				(font
-					(size 1.27 1.27)
+					(size 1.524 1.524)
 				)
 			)
 		)
-		(property "Value" "ERJP08J105V"
-			(at 231.14 100.33 0)
+		(property "Value" "COM-16347"
+			(at 82.55 231.14 0)
 			(effects
 				(font
-					(size 1.27 1.27)
+					(size 1.524 1.524)
 				)
 			)
 		)
-		(property "Footprint" "footprints:RES_ERJP08J105V"
-			(at 231.14 104.14 0)
+		(property "Footprint" "footprints:COM-16347_SPK"
+			(at 62.23 238.76 0)
 			(effects
 				(font
 					(size 1.27 1.27)
+					(italic yes)
 				)
-				(justify bottom)
 				(hide yes)
 			)
 		)
-		(property "Datasheet" ""
-			(at 231.14 104.14 0)
+		(property "Datasheet" "COM-16347"
+			(at 62.23 238.76 0)
 			(effects
 				(font
 					(size 1.27 1.27)
+					(italic yes)
 				)
 				(hide yes)
 			)
 		)
 		(property "Description" ""
-			(at 231.14 104.14 0)
+			(at 62.23 238.76 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(hide yes)
 			)
-		)
-		(property "PARTREV" "3/1/2020"
-			(at 231.14 104.14 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-				(hide yes)
-			)
-		)
-		(property "STANDARD" "Manufacturer Recommendations"
-			(at 231.14 104.14 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-				(hide yes)
-			)
-		)
-		(property "MAXIMUM_PACKAGE_HEIGHT" "0.6 mm"
-			(at 231.14 104.14 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-				(hide yes)
-			)
-		)
-		(property "MANUFACTURER" "Panasonic"
-			(at 231.14 104.14 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "e0b6044a-22e9-4a46-9d95-ce2a5c88aa15")
 		)
 		(pin "2"
-			(uuid "b3bf219c-b5ce-4def-b635-9a7631c3cee9")
+			(uuid "2effcdfe-c82a-4198-8cb7-5365c3a09521")
+		)
+		(pin "3"
+			(uuid "cb0bc76a-8a25-4b83-a061-84217a63e0dd")
+		)
+		(pin "1"
+			(uuid "fa4b6aef-7f12-4f00-9c4c-5bd8031c6ff0")
+		)
+		(pin "4"
+			(uuid "564d7458-fb1c-42c7-8395-0886360719f3")
 		)
 		(instances
-			(project "board_MKIV"
+			(project ""
 				(path "/1521a3d4-d148-4383-b633-021e5ea56970"
-					(reference "R22")
+					(reference "LED1")
 					(unit 1)
 				)
 			)
@@ -20448,6 +20906,77 @@
 		)
 	)
 	(symbol
+		(lib_id "CRL1206-FW-R330ELF:CRL1206-FW-R330ELF")
+		(at 102.87 228.6 90)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "aaf01ada-0789-452c-b6cb-0a9e5414502c")
+		(property "Reference" "R7"
+			(at 106.68 227.3299 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "CRL1206-FW-R330ELF"
+			(at 106.68 229.8699 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "footprints:RESC3216X70N"
+			(at 102.87 228.6 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 102.87 228.6 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 102.87 228.6 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "5421d69b-51b4-4097-a30e-49c4287640e7")
+		)
+		(pin "2"
+			(uuid "0db309c8-65bf-468d-9389-8f273796938d")
+		)
+		(instances
+			(project ""
+				(path "/1521a3d4-d148-4383-b633-021e5ea56970"
+					(reference "R7")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "DS01C-254-S-03BE:DS01C-254-S-03BE")
 		(at 161.29 179.07 0)
 		(unit 1)
@@ -20858,7 +21387,7 @@
 	)
 	(symbol
 		(lib_id "ERJP08J105V:ERJP08J105V")
-		(at 231.14 93.98 0)
+		(at 137.16 24.13 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -20867,7 +21396,7 @@
 		(fields_autoplaced yes)
 		(uuid "bec0a7ab-b912-46b6-a04a-0dc55003018b")
 		(property "Reference" "R19"
-			(at 231.14 87.63 0)
+			(at 137.16 17.78 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20875,7 +21404,7 @@
 			)
 		)
 		(property "Value" "ERJP08J105V"
-			(at 231.14 90.17 0)
+			(at 137.16 20.32 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20883,7 +21412,7 @@
 			)
 		)
 		(property "Footprint" "footprints:RES_ERJP08J105V"
-			(at 231.14 93.98 0)
+			(at 137.16 24.13 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20893,7 +21422,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 231.14 93.98 0)
+			(at 137.16 24.13 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20902,7 +21431,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 231.14 93.98 0)
+			(at 137.16 24.13 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20911,7 +21440,7 @@
 			)
 		)
 		(property "PARTREV" "3/1/2020"
-			(at 231.14 93.98 0)
+			(at 137.16 24.13 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20921,7 +21450,7 @@
 			)
 		)
 		(property "STANDARD" "Manufacturer Recommendations"
-			(at 231.14 93.98 0)
+			(at 137.16 24.13 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20931,7 +21460,7 @@
 			)
 		)
 		(property "MAXIMUM_PACKAGE_HEIGHT" "0.6 mm"
-			(at 231.14 93.98 0)
+			(at 137.16 24.13 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20941,7 +21470,7 @@
 			)
 		)
 		(property "MANUFACTURER" "Panasonic"
-			(at 231.14 93.98 0)
+			(at 137.16 24.13 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20960,6 +21489,75 @@
 			(project "board_MKIV"
 				(path "/1521a3d4-d148-4383-b633-021e5ea56970"
 					(reference "R19")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "CRG1206F470R:CRG1206F470R")
+		(at 231.14 104.14 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "c2c43638-fb09-45dd-a452-c5b794fc0cf4")
+		(property "Reference" "R22"
+			(at 231.14 97.79 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "CRG1206F470R"
+			(at 231.14 100.33 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "footprints:RESC3115X65N"
+			(at 231.14 104.14 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 231.14 104.14 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 231.14 104.14 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "b023c707-e8bb-431a-88ed-73c39e01eca1")
+		)
+		(pin "2"
+			(uuid "b89733b3-c311-4c4e-aca6-a303c4a582ee")
+		)
+		(instances
+			(project "board_MKIV"
+				(path "/1521a3d4-d148-4383-b633-021e5ea56970"
+					(reference "R22")
 					(unit 1)
 				)
 			)
