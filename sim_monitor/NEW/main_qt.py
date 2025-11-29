@@ -3,7 +3,7 @@ import pprint, pathlib
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QLabel, QGridLayout,
     QVBoxLayout, QHBoxLayout, QFrame, QPushButton, QSizePolicy,
-    QDialog, QDialogButtonBox, QFormLayout, QLineEdit, QCheckBox,
+    QDialog, QDialogButtonBox, QFormLayout, QCheckBox,
     QMenu, QMessageBox, QFileDialog
 )
 from PyQt5.QtGui import QFont, QIcon, QPixmap
@@ -19,7 +19,6 @@ from utils.serial_handler_qt import (
 
 from utils.config_io import load_cfg, save_cfg
 from utils.layout_io import write_layout, read_layout
-
 from utils.debug_panel import DebugControlPanel
 
 
@@ -27,6 +26,9 @@ NUM_SIMULATORS = 12
 COLUMNS = 6
 
 
+# ===============================================================
+#   GEAR BUTTON STYLE
+# ===============================================================
 class GearButton(QPushButton):
     def __init__(self, icon: QIcon, parent=None, *, scale: float = 1.0):
         super().__init__(parent)
@@ -54,8 +56,10 @@ class GearButton(QPushButton):
         """)
 
 
+# ===============================================================
+#   SETTINGS DIALOG
+# ===============================================================
 class SettingsDialog(QDialog):
-    """General-settings popup."""
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Settings")
@@ -65,9 +69,7 @@ class SettingsDialog(QDialog):
         self.debug_check = QCheckBox("Enable debug mode on launch")
         form.addRow("", self.debug_check)
 
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
-        )
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
 
@@ -76,11 +78,15 @@ class SettingsDialog(QDialog):
         main.addWidget(buttons)
 
 
+# ===============================================================
+#   MAIN WINDOW
+# ===============================================================
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("FlightSafety Simulator Monitor")
         self.setStyleSheet("background-color: white;")
+
         screen_h = QApplication.primaryScreen().size().height()
         self.ui_scale = max(0.5, screen_h / 1080)
         self.is_fullscreen = True
@@ -90,18 +96,18 @@ class MainWindow(QMainWindow):
         central_widget.setContentsMargins(0, 0, 0, 0)
         self.setCentralWidget(central_widget)
 
-        main_layout = QVBoxLayout()
+        main_layout = QVBoxLayout(central_widget)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-        central_widget.setLayout(main_layout)
 
         self.cfg = load_cfg()
         self.debug_mode = self.cfg.get("debug_mode", True)
 
         # ---------------------------------------------------------
-        # HEADER
+        # HEADER BAR
         # ---------------------------------------------------------
         bar_h = int(90 * self.ui_scale)
+
         header_frame = QFrame()
         header_frame.setMinimumHeight(bar_h)
         header_frame.setMaximumHeight(bar_h)
@@ -117,27 +123,26 @@ class MainWindow(QMainWindow):
         self.logo_label.setPixmap(logo_pixmap)
         self.logo_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
-        # Project label
+        # Project Title
         self.project_label = QLabel("Simulator Monitor")
-        font = QFont("Eurostile", int(32 * self.ui_scale), QFont.Bold)
+        title_font = QFont("Eurostile", int(32 * self.ui_scale), QFont.Bold)
         if not QFont().exactMatch():
-            font = QFont("Orbitron", int(32 * self.ui_scale), QFont.Bold)
-        self.project_label.setFont(font)
+            title_font = QFont("Orbitron", int(32 * self.ui_scale), QFont.Bold)
+        self.project_label.setFont(title_font)
         self.project_label.setStyleSheet("color: white; letter-spacing: 4px;")
-        self.project_label.setAlignment(Qt.AlignVCenter)
 
-        # Mode label
+        # Mode Label
         font_size1 = int(12 * self.ui_scale)
         self.mode_label = QLabel("MODE: DEBUG")
         self.mode_label.setFont(QFont("Arial", font_size1))
         self.mode_label.setStyleSheet("color: white;")
 
-        # Receiver status label (NEW)
+        # Receiver Status Label (IMPORTANT)
         self.receiver_label = QLabel("RECEIVER: UNKNOWN")
         self.receiver_label.setFont(QFont("Arial", font_size1))
         self.receiver_label.setStyleSheet("color: yellow; font-weight: bold;")
 
-        # Clock + Date
+        # Clock & Date
         font_size2 = int(25 * self.ui_scale)
         self.clock_label = QLabel()
         self.clock_label.setFont(QFont("Arial", font_size2, QFont.Normal, italic=True))
@@ -159,14 +164,13 @@ class MainWindow(QMainWindow):
             self.settings_btn = GearButton(gear_icon, self, scale=self.ui_scale)
         self.settings_btn.clicked.connect(self.open_settings)
 
-        # Assemble header
+        # Header Assembly
         header_layout.addWidget(self.logo_label)
         header_layout.addSpacing(int(20 * self.ui_scale))
         header_layout.addWidget(self.project_label)
-
         header_layout.addStretch()
         header_layout.addWidget(self.mode_label)
-        header_layout.addWidget(self.receiver_label)        # NEW
+        header_layout.addWidget(self.receiver_label)    # <-- NEW
         header_layout.addWidget(self.clock_label)
         header_layout.addWidget(self.date_label)
         header_layout.addWidget(self.settings_btn)
@@ -183,32 +187,33 @@ class MainWindow(QMainWindow):
 
         for sim_id, (col, row) in SIMULATOR_LAYOUT.items():
             name = SIMULATOR_MAP.get(sim_id, f"SIM-{sim_id}")
-            sim_card = SimulatorCard(sim_id, name)
+            sim_card = SimulatorCard(sim_id, name, scale=self.ui_scale)
             self.simulator_cards[sim_id] = sim_card
             self.grid_layout.addWidget(sim_card, row, col)
 
         main_layout.addWidget(header_frame)
         main_layout.addLayout(self.grid_layout)
+
         QTimer.singleShot(0, self.rebuild_simulator_grid)
 
-        # Clock timer
+        # Clock Timer
         self.update_datetime()
-        timer = QTimer(self)
-        timer.timeout.connect(self.update_datetime)
-        timer.start(1000)
+        clock_timer = QTimer(self)
+        clock_timer.timeout.connect(self.update_datetime)
+        clock_timer.start(1000)
 
-        # Serial thread start
+        # Start Serial Thread (IMPORTANT: receiver_status_fn added)
         self.apply_debug_mode(self.debug_mode, persist=False)
 
         start_serial_thread(
             self.simulator_cards,
             update_sim_fn=self.update_simulator_state,
             mark_offline_fn=self.set_simulator_offline,
-            receiver_status_fn=self.set_receiver_status        # NEW
+            receiver_status_fn=self.set_receiver_status  # <-- CRITICAL
         )
 
     # ===========================================================
-    #   QT SLOTS
+    #   CALLBACKS FROM SERIAL THREAD
     # ===========================================================
     @pyqtSlot(int, int, int)
     def update_simulator_state(self, sim_id, motion, ramp):
@@ -220,7 +225,6 @@ class MainWindow(QMainWindow):
         if sim_id in self.simulator_cards:
             self.simulator_cards[sim_id].set_offline(offline)
 
-    # NEW: Receiver ESP32 status
     @pyqtSlot(bool)
     def set_receiver_status(self, online):
         if online:
@@ -231,16 +235,13 @@ class MainWindow(QMainWindow):
             self.receiver_label.setStyleSheet("color: red; font-weight: bold;")
 
     # ===========================================================
-    #   EVENT HANDLERS
+    #   KEY EVENTS & WINDOW EVENTS
     # ===========================================================
     def keyPressEvent(self, event):
         key = event.key()
 
         if key == Qt.Key_F11:
-            if self.is_fullscreen:
-                self.showNormal()
-            else:
-                self.showFullScreen()
+            self.showNormal() if self.is_fullscreen else self.showFullScreen()
             self.is_fullscreen = not self.is_fullscreen
 
         elif key == Qt.Key_Escape:
@@ -253,7 +254,6 @@ class MainWindow(QMainWindow):
             self.restart_gui()
 
     def closeEvent(self, event):
-        print("Window closed, exiting...")
         stop_serial_thread()
         QApplication.quit()
         event.accept()
@@ -266,7 +266,7 @@ class MainWindow(QMainWindow):
         QApplication.quit()
 
     # ===========================================================
-    #   SETTINGS MENU
+    #   SETTINGS MENU + DEBUG PANEL
     # ===========================================================
     def open_debug_menu(self):
         dlg = DebugControlPanel(self, self.simulator_cards, serial_debug)
@@ -277,7 +277,7 @@ class MainWindow(QMainWindow):
 
         menu.addAction("Edit Simulator Layout…", self.edit_layout_dialog)
         menu.addAction("General Settings…", self.general_settings_dialog)
-        menu.addAction("Debug Control Panel...", self.open_debug_menu)
+        menu.addAction("Debug Control Panel…", self.open_debug_menu)
 
         menu.addSeparator()
         menu.addAction("About", lambda: QMessageBox.information(
@@ -288,7 +288,7 @@ class MainWindow(QMainWindow):
         menu.exec_(pos)
 
     # ===========================================================
-    #   SETTINGS DIALOG LOGIC
+    #   SETTINGS & GRID MGMT
     # ===========================================================
     def general_settings_dialog(self):
         dlg = SettingsDialog(self)
@@ -300,9 +300,6 @@ class MainWindow(QMainWindow):
                 self.apply_debug_mode(new_state)
                 self.restart_gui()
 
-    # ===========================================================
-    #   GRID REBUILD & LAYOUT
-    # ===========================================================
     def edit_layout_dialog(self):
         dlg = EditLayoutDialog(
             SIMULATOR_MAP.copy(),
@@ -315,31 +312,35 @@ class MainWindow(QMainWindow):
 
             if dlg._save_requested:
                 filename = write_layout(new_map, new_layout)
-                print(f"💾 Layout saved as configs/{filename}")
+                print(f"Saved layout: configs/{filename}")
 
-            SIMULATOR_MAP.clear(); SIMULATOR_MAP.update(new_map)
-            SIMULATOR_LAYOUT.clear(); SIMULATOR_LAYOUT.update(new_layout)
+            SIMULATOR_MAP.clear()
+            SIMULATOR_MAP.update(new_map)
+
+            SIMULATOR_LAYOUT.clear()
+            SIMULATOR_LAYOUT.update(new_layout)
 
             self.rebuild_simulator_grid()
 
     def rebuild_simulator_grid(self):
-        for sim_card in self.simulator_cards.values():
-            sim_card.setParent(None)
+        for sim in self.simulator_cards.values():
+            sim.setParent(None)
         self.simulator_cards.clear()
 
         rows = max(r for (_, r) in SIMULATOR_LAYOUT.values()) + 1
         cols = max(c for (c, _) in SIMULATOR_LAYOUT.values()) + 1
+
         self.grid_layout.setRowStretch(rows, 1)
         self.grid_layout.setColumnStretch(cols, 1)
 
         for sim_id, (col, row) in SIMULATOR_LAYOUT.items():
-            name = SIMULATOR_MAP.get(sim_id, f"SIM-{sim_id}")
-            sim_card = SimulatorCard(sim_id, name, scale=self.ui_scale)
+            sim_label = SIMULATOR_MAP.get(sim_id, f"SIM-{sim_id}")
+            sim_card = SimulatorCard(sim_id, sim_label, scale=self.ui_scale)
             self.simulator_cards[sim_id] = sim_card
             self.grid_layout.addWidget(sim_card, row, col)
 
     # ===========================================================
-    #   DEBUG MODE APPLY
+    #   DEBUG MODE SWITCHING
     # ===========================================================
     def apply_debug_mode(self, enabled: bool, *, persist=True):
         self.debug_mode = enabled
@@ -352,11 +353,12 @@ class MainWindow(QMainWindow):
             save_cfg(self.cfg)
 
     # ===========================================================
-    #   MISC
+    #   CLOCK
     # ===========================================================
     def update_datetime(self):
         now = QTime.currentTime()
         today = QDate.currentDate()
+
         self.date_label.setText(today.toString("ddd dd MMM yyyy"))
         self.clock_label.setText(now.toString("HH:mm:ss AP"))
 
