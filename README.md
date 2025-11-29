@@ -1,9 +1,9 @@
 # SimMonitoring Overview
-![alt text](image-mac.png)
+![alt text](images/image-mac.png)
 
-![alt text](image-mapping.png)
+![alt text](images/image-mapping.png)
 
-![alt text](image-files.png)
+![alt text](images/image-files.png)
 
 
 Rename the main script to main.py
@@ -29,7 +29,7 @@ mpremote connect /dev/ttyUSB0 run gpio_test.py
 
 ## Wiring Guide for Each ESP32 Device
 
-![alt text](image-sender.png)
+![alt text](images/image-sender.png)
 
 # ESP32 Device ID Configuration for Sender
 
@@ -61,6 +61,6 @@ Below is a quick reference for how to wire **GPIO17**, **GPIO16**, **GPIO4**, an
 3. Use **10kΩ resistors** (or internal pulls) to pull each pin HIGH or LOW.  
 4. For a **Sender** role, set **GPIO18 = 0 (LOW)** and **GPIO19 = 0 (LOW)**. This yields `role_value = 0` => `"SENDER"`.
 
-![alt text](image-relay.png)
+![alt text](images/image-relay.png)
 
-![alt text](image-receiver.png)
+![alt text](images/image-receiver.png)
