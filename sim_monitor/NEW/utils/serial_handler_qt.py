@@ -196,7 +196,7 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn):
 
             # Per-sim timestamp for heartbeat timeout
             last_seen = {}
-            OFFLINE_TIMEOUT = 30  # seconds
+            OFFLINE_TIMEOUT = 90  # seconds
 
             while _RUN_FLAG:
                 raw = ser.readline().decode(errors="replace").strip()
