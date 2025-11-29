@@ -237,16 +237,13 @@ def start_serial_thread(
                 # =========================
                 #   Receiver silence watchdog
                 # =========================
-                if raw:
-                    last_any_rx = now
-                else:
-                    if now - last_any_rx > 5:  # receiver silent for 5 seconds
-                        QMetaObject.invokeMethod(
-                            receiver_status_fn.__self__,
-                            "set_receiver_status",
-                            Qt.QueuedConnection,
-                            Q_ARG(bool, False)
-                        )
+                if ser and hasattr(ser, "is_open") and ser.is_open:
+                    QMetaObject.invokeMethod(
+                        receiver_status_fn.__self__,
+                        "set_reciever_status",
+                        Qt.QueuedConnection,
+                        Q_ARG(bool, True)
+                    )
 
                 # =========================
                 #   PROCESS ANY SERIAL LINE
