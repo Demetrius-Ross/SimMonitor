@@ -4,9 +4,9 @@ Qt-friendly Serial Monitor for the Sim-Monitor GUI
 --------------------------------------------------
 • Real serial reading when DEBUG_MODE=False
 • Fully simulated ESP-NOW sender behavior when DEBUG_MODE=True
-• Inject simulated disconnects
-• Supports Debug Control Panel (fake DATA, fake HEARTBEAT, force dropouts)
-• Safe signals back into Qt main thread
+• Inject simulated disconnects for senders (Debug Panel)
+• Receiver ESP32 online/offline detection
+• Safe Qt-thread callback signaling
 """
 
 import logging, threading, time, re
@@ -25,30 +25,36 @@ class DebugInjection:
     """
     Handles:
     • Per-SIM disconnect toggling
-    • Inject fake DATA / fake HEARTBEAT
+    • Inject fake DATA / fake HEARTBEAT frames
     • Buffering injected raw lines
     """
 
     def __init__(self):
-        self.disconnect_flags = {}   # sid → True/False
-        self._inject_buffer = []     # queued injected lines
+        self.disconnect_flags = {}      # sid → True/False
+        self._inject_buffer = []        # queued injected lines
 
     def toggle_disconnect(self, sid, enabled):
         self.disconnect_flags[sid] = enabled
 
     def inject_fake_data(self, sid):
-        line = f"[DATA] Received from Sender ID {sid}: RampState=2, MotionState=1, Seq=9999\n"
+        line = (
+            f"[DATA] Received from Sender ID {sid}: "
+            f"RampState=2, MotionState=1, Seq=9999\n"
+        )
         self._inject_buffer.append(line.encode())
 
     def inject_fake_heartbeat(self, sid):
-        line = f"[HEARTBEAT] Received from Sender ID {sid}: RampState=1, MotionState=2, Seq=10000\n"
+        line = (
+            f"[HEARTBEAT] Received from Sender ID {sid}: "
+            f"RampState=1, MotionState=2, Seq=10000\n"
+        )
         self._inject_buffer.append(line.encode())
 
     def reset_to_normal(self):
         self.disconnect_flags.clear()
 
 
-# GLOBAL instance
+# Global instance used by GUI
 serial_debug = DebugInjection()
 
 
@@ -64,13 +70,17 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(message)s")
 
 data_regex = re.compile(
-    r'^\[DATA\]\s+Received from Sender ID\s+(\d+):\s+RampState=(\d+),\s+MotionState=(\d+),\s+Seq=(\d+)$')
+    r'^\[DATA\]\s+Received from Sender ID\s+(\d+):\s+RampState=(\d+),'
+    r'\s+MotionState=(\d+),\s+Seq=(\d+)$'
+)
 heartbeat_regex = re.compile(
-    r'^\[HEARTBEAT\]\s+Received from Sender ID\s+(\d+):\s+RampState=(\d+),\s+MotionState=(\d+),\s+Seq=(\d+)$')
+    r'^\[HEARTBEAT\]\s+Received from Sender ID\s+(\d+):\s+RampState=(\d+),'
+    r'\s+MotionState=(\d+),\s+Seq=(\d+)$'
+)
 
 
 # ===============================================================
-#   PUBLIC FUNCTIONS CALLED BY GUI
+#   PUBLIC FUNCTIONS CALLED BY MAIN GUI
 # ===============================================================
 def set_debug_mode(enabled: bool):
     global DEBUG_MODE
@@ -86,11 +96,18 @@ def stop_serial_thread():
 # ===============================================================
 #   MAIN THREAD START
 # ===============================================================
-def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn):
+def start_serial_thread(
+    sim_cards: dict,
+    *,
+    update_sim_fn,
+    mark_offline_fn,
+    receiver_status_fn
+):
     """
-    sim_cards:        {sim_id: SimulatorCard}
-    update_sim_fn:    MainWindow.update_simulator_state
-    mark_offline_fn:  MainWindow.set_simulator_offline
+    sim_cards:           { sim_id: SimulatorCard }
+    update_sim_fn:       MainWindow.update_simulator_state
+    mark_offline_fn:     MainWindow.set_simulator_offline
+    receiver_status_fn:  MainWindow.set_receiver_status
     """
     global _RUN_FLAG
     _RUN_FLAG = True
@@ -101,11 +118,10 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn):
     class MockSerial:
         """
         Behavior:
-        • Sim 1 & 2 send valid frames for 10 seconds
-        • Then silence for 12 seconds (triggers OFFLINE)
-        • Then send again (ONLINE)
-        • Repeats indefinitely
-        • Debug Panel can override with injection or forced dropouts
+        • Sim 1 & 2 send frames for 10 seconds
+        • Silence for 12 seconds (simulate full disconnect)
+        • Repeat
+        • DebugPanel can override with forced dropouts or inject frames
         """
 
         def __init__(self):
@@ -113,7 +129,7 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn):
             self.last_phase_change = time.time()
             self.idx = 0
 
-            # Simulated sample frames
+            # Sample simulated frames
             self.frames = [
                 b"[DATA] Received from Sender ID 1: RampState=2, MotionState=2, Seq=10\n",
                 b"[HEARTBEAT] Received from Sender ID 2: RampState=1, MotionState=1, Seq=11\n",
@@ -129,11 +145,11 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn):
         def readline(self):
             now = time.time()
 
-            # Priority: injected debug lines
+            # Priority to injected frames
             if serial_debug._inject_buffer:
                 return serial_debug._inject_buffer.pop(0)
 
-            # Phase 1 — sending frames for 10 seconds
+            # Phase 1 — active send for 10s
             if self.phase == "sending":
                 if now - self.last_phase_change < 10:
                     time.sleep(1)
@@ -145,7 +161,7 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn):
                     self.last_phase_change = now
                     return b""
 
-            # Phase 2 — silent for 12 seconds
+            # Phase 2 — silent for 12s to simulate disconnect
             elif self.phase == "silent":
                 if now - self.last_phase_change < 12:
                     time.sleep(1)
@@ -159,13 +175,15 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn):
 
 
     # ===========================================================
-    #   REAL SERIAL PORT OPEN
+    #   SERIAL PORT OPEN
     # ===========================================================
     def open_any_serial_port(preferred: str, baud: int):
+        # Debug mode forces mock serial
         if DEBUG_MODE or serial is None:
             logger.info("Using MockSerial (DEBUG mode)")
             return MockSerial()
 
+        # Try preferred device
         try:
             if preferred:
                 s = serial.Serial(preferred, baud, timeout=READ_TIMEOUT)
@@ -174,13 +192,14 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn):
         except Exception as exc:
             logger.warning(f"Preferred port failed: {exc}")
 
+        # Auto-scan all ports
         logger.info("Scanning serial ports…")
         for p in serial.tools.list_ports.comports():
             try:
                 s = serial.Serial(p.device, baud, timeout=READ_TIMEOUT)
                 logger.info(f"Opened {p.device}")
                 return s
-            except:
+            except Exception:
                 continue
 
         raise IOError("No serial ports available")
@@ -191,38 +210,64 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn):
     # ===========================================================
     def reader_thread():
         ser = None
+
         try:
             ser = open_any_serial_port(SERIAL_PORT, BAUD_RATE)
 
-            # Per-sim timestamp for heartbeat timeout
+            # Notify GUI that receiver is online
+            QMetaObject.invokeMethod(
+                receiver_status_fn.__self__,
+                "set_receiver_status",
+                Qt.QueuedConnection,
+                Q_ARG(bool, True)
+            )
+
+            # Last-seen timestamps for each sender
             last_seen = {}
-            OFFLINE_TIMEOUT = 90  # seconds
+            OFFLINE_TIMEOUT = 10  # seconds
+
+            # Track silence time for receiver
+            last_any_rx = time.time()
 
             while _RUN_FLAG:
-                raw = ser.readline().decode(errors="replace").strip()
+                raw_bytes = ser.readline()
+                raw = raw_bytes.decode(errors="replace").strip()
                 now = time.time()
+
+                # =========================
+                #   Receiver silence watchdog
+                # =========================
+                if raw:
+                    last_any_rx = now
+                else:
+                    if now - last_any_rx > 5:  # receiver silent for 5 seconds
+                        QMetaObject.invokeMethod(
+                            receiver_status_fn.__self__,
+                            "set_receiver_status",
+                            Qt.QueuedConnection,
+                            Q_ARG(bool, False)
+                        )
 
                 # =========================
                 #   PROCESS ANY SERIAL LINE
                 # =========================
                 if raw:
                     logger.debug(f"RX: {raw}")
-                    m = data_regex.match(raw) or heartbeat_regex.match(raw)
 
+                    m = data_regex.match(raw) or heartbeat_regex.match(raw)
                     if m:
                         sid = int(m.group(1))
                         ramp = int(m.group(2))
                         mot = int(m.group(3))
 
-                        # DEBUG MODE DISCONNECT OVERRIDE
-                        if sid in serial_debug.disconnect_flags and serial_debug.disconnect_flags[sid]:
-                            # Skip processing — sim appears offline
+                        # Debug forced disconnect
+                        if serial_debug.disconnect_flags.get(sid, False):
                             continue
 
-                        # Mark last seen
+                        # Update sender last seen timestamp
                         last_seen[sid] = now
 
-                        # Mark ONLINE
+                        # Mark sender ONLINE
                         QMetaObject.invokeMethod(
                             mark_offline_fn.__self__,
                             "set_simulator_offline",
@@ -231,7 +276,7 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn):
                             Q_ARG(bool, False)
                         )
 
-                        # Update sim state
+                        # Update GUI sim state
                         QMetaObject.invokeMethod(
                             update_sim_fn.__self__,
                             "update_simulator_state",
@@ -242,7 +287,7 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn):
                         )
 
                 # =========================
-                #   OFFLINE TIMEOUT CHECK
+                #   SENDER OFFLINE CHECK
                 # =========================
                 for sim_id in sim_cards.keys():
                     last = last_seen.get(sim_id, 0)
@@ -258,13 +303,30 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn):
         except Exception as exc:
             logger.error(f"Serial worker error: {exc}")
 
+            # Receiver OFFLINE
+            QMetaObject.invokeMethod(
+                receiver_status_fn.__self__,
+                "set_receiver_status",
+                Qt.QueuedConnection,
+                Q_ARG(bool, False)
+            )
+
         finally:
+            # Close port safely
             if ser and hasattr(ser, "is_open") and ser.is_open:
                 ser.close()
                 logger.info("Serial port closed.")
 
+            # Receiver OFFLINE (final)
+            QMetaObject.invokeMethod(
+                receiver_status_fn.__self__,
+                "set_receiver_status",
+                Qt.QueuedConnection,
+                Q_ARG(bool, False)
+            )
+
 
     # ===========================================================
-    #   START THREAD
+    #   LAUNCH THREAD
     # ===========================================================
     threading.Thread(target=reader_thread, daemon=True).start()
