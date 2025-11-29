@@ -8720,7 +8720,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "7c7ffe55-6c12-4b77-80a6-c25b2b2b3a5a")
-		(property "Reference" "#PWR01"
+		(property "Reference" "#PWR03"
 			(at 123.19 26.67 0)
 			(effects
 				(font
@@ -8947,7 +8947,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "90994c47-6746-47f1-b05f-b6fb2ae42c9a")
-		(property "Reference" "#FLG01"
+		(property "Reference" "#FLG04"
 			(at 119.38 24.765 0)
 			(effects
 				(font
