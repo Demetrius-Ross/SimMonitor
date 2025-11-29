@@ -373,6 +373,7 @@ class SimulatorCard(QWidget):
             if offline:
                 self.overlay.show()
                 self.overlay.raise_()
+                self.status_bar.enable_animation(False)
 
                 # Remove drop shadow for offline
                 self.card.setGraphicsEffect(None)
