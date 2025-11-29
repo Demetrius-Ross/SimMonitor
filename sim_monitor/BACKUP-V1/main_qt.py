@@ -13,12 +13,10 @@ from edit_layout_dialog import EditLayoutDialog
 from utils.simulator_map import SIMULATOR_MAP, SIMULATOR_LAYOUT
 
 from simulator_card import SimulatorCard
-from utils.serial_handler_qt import start_serial_thread, set_debug_mode, stop_serial_thread, serial_debug
+from utils.serial_handler_qt import start_serial_thread, set_debug_mode, stop_serial_thread
 
 from utils.config_io import load_cfg, save_cfg
-from utils.layout_io import write_layout, read_layout     
-
-from utils.debug_panel import DebugControlPanel
+from utils.layout_io import write_layout, read_layout       
 
 
 NUM_SIMULATORS = 12
@@ -262,10 +260,6 @@ class MainWindow(QMainWindow):
         subprocess.Popen([python, script])
         QApplication.quit()
 
-    def open_debug_menu(self):
-        dlg = DebugControlPanel(self, self.simulator_cards, serial_debug)
-        dlg.exec_()
-
     def open_settings(self):
         """Gear-button handler – shows a small pop-up menu."""
         menu = QMenu(self)
@@ -276,13 +270,10 @@ class MainWindow(QMainWindow):
         # 2) General Settings …
         menu.addAction("General Settings…", self.general_settings_dialog)
 
-        # 3) Debug Settings …
-        menu.addAction("Debug Control Panel...", self.open_debug_menu)
-
         # (optional) About
         menu.addSeparator()
         menu.addAction("About", lambda: QMessageBox.information(
-            self, "About", "Sim Monitor v2.0\n FlightSafety International")
+            self, "About", "Sim Monitor v1.0\n© FlightSafety International")
         )
 
         # Show the menu right under / beside the gear
