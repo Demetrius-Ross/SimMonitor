@@ -63,7 +63,7 @@ serial_debug = DebugInjection()
 #   CONFIG
 # ===============================================================
 DEBUG_MODE = False
-SERIAL_PORT = "/dev/pts/5"
+SERIAL_PORT = ""
 BAUD_RATE = 115200
 READ_TIMEOUT = 1.0
 
