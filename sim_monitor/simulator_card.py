@@ -110,7 +110,7 @@ class SimulatorCard(QWidget):
         self.last_motion_duration = None
 
         # Overall size
-        self.setFixedSize(int(310 * self.scale), int(420 * self.scale))
+        self.setFixedSize(int(310 * self.scale), int(450 * self.scale))
 
         # Main layout
         self.stack = QStackedLayout(self)
@@ -136,8 +136,8 @@ class SimulatorCard(QWidget):
                 border-radius: 16px;
             }
         """)
-        self.card.setMinimumHeight(int(400 * self.scale))
-        self.card.setMaximumHeight(int(400 * self.scale))
+        self.card.setMinimumHeight(int(430 * self.scale))
+        self.card.setMaximumHeight(int(430 * self.scale))
 
         card_layout = QVBoxLayout(self.card)
         card_layout.setContentsMargins(
@@ -174,8 +174,8 @@ class SimulatorCard(QWidget):
         self.motion_label = QLabel("No motion recorded yet")
         self.motion_label.setAlignment(Qt.AlignCenter)
         #self.motion_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.motion_label.setFont(QFont("Arial", int(14 * self.scale), QFont.Bold))
-        self.motion_label.setStyleSheet("color: #555;")
+        self.motion_label.setFont(QFont("Arial", int(16 * self.scale), QFont.Bold))
+        #self.motion_label.setStyleSheet("color: #555;")
         card_layout.addWidget(self.motion_label)
 
         outer_layout.addWidget(self.card)
@@ -220,7 +220,7 @@ class SimulatorCard(QWidget):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         # Ensure the card fills the full expected space
-        self.card.setFixedHeight(int(400 * self.scale))
+        self.card.setFixedHeight(int(430 * self.scale))
         self.overlay.setGeometry(0, 0, self.card.width(), self.card.height())
         self.apply_overlay_mask()
 
@@ -229,10 +229,10 @@ class SimulatorCard(QWidget):
         if (self.in_motion and self.motion_start_ts) or \
         (self.last_motion_end and self.last_motion_duration):
             # Has current or historical motion → shrink
-            self.image.setFixedHeight(int(298 * self.scale))
+            self.image.setFixedHeight(int(290 * self.scale))
         else:
             # No motion recorded yet → full height
-            self.image.setFixedHeight(int(330 * self.scale))
+            self.image.setFixedHeight(int(325 * self.scale))
 
     # ------------------------------------------------------------------
     # DB → UI entry point
@@ -454,7 +454,7 @@ class SimulatorCard(QWidget):
                 m, s = divmod(rem, 60)
                 end_local = time.strftime("%H:%M:%S", time.localtime(self.last_motion_end))
                 self.motion_label.setText(
-                    f"Last motion ended at {end_local}\n"
+                    f"Last in motion at {end_local}\n"
                     f"Duration {h:02d}:{m:02d}:{s:02d}"
                 )
             else:

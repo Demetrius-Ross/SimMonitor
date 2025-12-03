@@ -143,7 +143,7 @@ class MainWindow(QMainWindow):
 
         # Receiver status text
         self.receiver_label = QLabel("Receiver: UNKNOWN")
-        self.receiver_label.setFont(QFont("Arial", int(12 * self.ui_scale)))
+        self.receiver_label.setFont(QFont("Arial", int(16 * self.ui_scale)))
         self.receiver_label.setStyleSheet("color: #FFD700;")  # yellowish
         self.receiver_label.setAlignment(Qt.AlignVCenter)
 
@@ -186,7 +186,7 @@ class MainWindow(QMainWindow):
         self.grid_layout = QGridLayout()
         self.grid_layout.setSpacing(int(8 * self.ui_scale))
         margin = int(10 * self.ui_scale)
-        bottom_margin = int(130 * self.ui_scale)
+        bottom_margin = int(20 * self.ui_scale)
         self.grid_layout.setContentsMargins(margin, margin, margin, bottom_margin)
 
         main_layout.addWidget(header_frame)
@@ -257,8 +257,8 @@ class MainWindow(QMainWindow):
         # Determine grid extents
         rows = max(r for (_, r) in self.layout_map.values()) + 1
         cols = max(c for (c, _) in self.layout_map.values()) + 1
-        self.grid_layout.setRowStretch(rows, 1)
-        self.grid_layout.setColumnStretch(cols, 1)
+        self.grid_layout.setRowStretch(rows, 2)
+        self.grid_layout.setColumnStretch(cols, 2)
 
         # Rebuild from layout_map (keys are strings)
         for sid_str, (col, row) in self.layout_map.items():

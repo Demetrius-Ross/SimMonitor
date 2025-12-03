@@ -110,7 +110,7 @@ class SimulatorCard(QWidget):
         self.last_motion_duration = None
 
         # Overall size
-        self.setFixedSize(int(310 * self.scale), int(420 * self.scale))
+        self.setFixedSize(int(310 * self.scale), int(650 * self.scale))
 
         # Main layout
         self.stack = QStackedLayout(self)
