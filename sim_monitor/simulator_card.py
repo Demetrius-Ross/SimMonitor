@@ -11,10 +11,10 @@ from PyQt5.QtCore import Qt, QRectF, QTimer
 
 
 SIM_IMAGES = {
-    "motion-on": "images/FINAL-SIM-UP.png",
-    "ramping": "images/FINAL-RAMP-UP.png",
-    "at-home": "images/FINAL-SIM-DOWN.png",
-    "offline": "images/FINAL-SIM-DOWN.png",
+    "motion-on": "images/FINAL-SIM-UP-ICE.png",
+    "ramping": "images/FINAL-RAMP-UP-ICE.png",
+    "at-home": "images/FINAL-SIM-DOWN-ICE.png",
+    "offline": "images/FINAL-SIM-DOWN-ICE.png",
 
     # Ramp disconnected variants
     "motion-on-no-ramp": "images/FINAL-SIM-UP-NO-RAMP.png",
@@ -229,7 +229,7 @@ class SimulatorCard(QWidget):
         if (self.in_motion and self.motion_start_ts) or \
         (self.last_motion_end and self.last_motion_duration):
             # Has current or historical motion → shrink
-            self.image.setFixedHeight(int(290 * self.scale))
+            self.image.setFixedHeight(int(300 * self.scale))
         else:
             # No motion recorded yet → full height
             self.image.setFixedHeight(int(325 * self.scale))
