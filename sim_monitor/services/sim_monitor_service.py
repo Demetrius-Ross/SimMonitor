@@ -20,7 +20,7 @@ HB_RE = re.compile(
     r'^\[HEARTBEAT\]\s+Received from Sender ID\s+(\d+):\s+RampState=(\d+),\s+MotionState=(\d+)'
 )
 
-SENDER_TIMEOUT = 30      # seconds before marking sender offline
+SENDER_TIMEOUT = 90      # seconds before marking sender offline
 BAUD = 115200
 PREFERRED_PORT = "/dev/pts/5"      # e.g. "/dev/ttyUSB0" or "COM3" if you know it
 
