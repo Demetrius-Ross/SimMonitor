@@ -347,7 +347,7 @@ class SimulatorCard(QWidget):
                         padding: 8px 16px;
                         border-radius: 6px;
                     """)
-                    self.status_bar.enable_animation(True)
+                    self.status_bar.enable_animation(False)
                 elif self.motion_state == 1:
                     self.status_bar.setText("Standby (No Ramp)")
                     self.status_bar.setStyleSheet("""
@@ -378,7 +378,7 @@ class SimulatorCard(QWidget):
                 padding: 8px 16px;
                 border-radius: 6px;
             """)
-            self.status_bar.enable_animation(True)
+            self.status_bar.enable_animation(False)
 
         elif self.motion_state == 1:
             if self.ramp_state == 0:
