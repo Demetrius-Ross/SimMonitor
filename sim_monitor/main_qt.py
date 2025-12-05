@@ -24,6 +24,8 @@ from utils.db import get_conn, init_db
 from utils.debug_panel import DebugControlPanel
 from utils.serial_handler_qt import set_debug_mode, serial_debug
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+IMAGES_DIR = os.path.join(BASE_DIR, "images")
 
 NUM_SIMULATORS = 12   # upper bound; actual sims come from layout JSON
 
@@ -122,7 +124,7 @@ class MainWindow(QMainWindow):
 
         # Logo
         self.logo_label = QLabel()
-        logo_pixmap = QPixmap("images/fs-logo.png")
+        logo_pixmap = QPixmap(os.path.join(IMAGES_DIR,("fs-logo.png")))
         logo_pixmap = logo_pixmap.scaledToHeight(int(120 * self.ui_scale), Qt.SmoothTransformation)
         self.logo_label.setPixmap(logo_pixmap)
         self.logo_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
