@@ -8,17 +8,20 @@ from PyQt5.QtGui import (
     QPixmap, QFont, QRegion, QPainterPath, QPainter, QColor, QBrush
 )
 from PyQt5.QtCore import Qt, QRectF, QTimer
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+IMAGES_DIR = os.path.join(BASE_DIR, "images")
 
 
 SIM_IMAGES = {
-    "motion-on": "images/FINAL-SIM-UP-ICE.png",
-    "ramping": "images/FINAL-RAMP-UP-ICE.png",
-    "at-home": "images/FINAL-SIM-DOWN-ICE.png",
-    "offline": "images/FINAL-SIM-DOWN-ICE.png",
+    "motion-on": os.path.join(IMAGES_DIR,"FINAL-SIM-UP-ICE.png"),
+    "ramping": os.path.join(IMAGES_DIR,"FINAL-RAMP-UP-ICE.png"),
+    "at-home": os.path.join(IMAGES_DIR,"FINAL-SIM-DOWN-ICE.png"),
+    "offline": os.path.join(IMAGES_DIR,"FINAL-SIM-DOWN-ICE.png"),
 
     # Ramp disconnected variants
-    "motion-on-no-ramp": "images/FINAL-SIM-UP-NO-RAMP.png",
-    "at-home-no-ramp": "images/FINAL-SIM-DOWN-NO-RAMP.png",
+    "motion-on-no-ramp": os.path.join(IMAGES_DIR,"FINAL-SIM-UP-NO-RAMP.png"),
+    "at-home-no-ramp": os.path.join(IMAGES_DIR,"FINAL-SIM-DOWN-NO-RAMP.png"),
 }
 
 
@@ -110,7 +113,7 @@ class SimulatorCard(QWidget):
         self.last_motion_duration = None
 
         # Overall size
-        self.setFixedSize(int(310 * self.scale), int(450 * self.scale))
+        self.setFixedSize(int(320 * self.scale), int(450 * self.scale))
 
         # Main layout
         self.stack = QStackedLayout(self)
