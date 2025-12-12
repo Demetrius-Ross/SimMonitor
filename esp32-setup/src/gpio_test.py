@@ -45,15 +45,23 @@ mac_prefix = {
     "TELEMETRY": "AC:DB:03"
 }
 
-virtual_mac = f"{mac_prefix.get(DEVICE_TYPE, 'AC:DB:FF')}:{device_id:02X}:{device_id:02X}"
+virtual_mac = "{}:{:02X}:{:02X}".format(
+    mac_prefix.get(DEVICE_TYPE, "AC:DB:FF"),
+    device_id,
+    device_id
+)
 
 print("\n=== GPIO ROLE & ID VERIFICATION ===")
-print(f"Role Pins (19,18,14): {role_pins[0].value()} {role_pins[1].value()} {role_pins[2].value()}")
-print(f"Device Role          : {DEVICE_TYPE}")
-print(f"Raw ID               : 0x{raw_id:X}")
-print(f"Corrected Device ID  : {device_id}")
-print(f"Generated Virtual MAC: {virtual_mac}")
-print(f"Actual ESP32 MAC     : {esp_mac}")
+print("Role Pins (19,18,14): {} {} {}".format(
+    role_pins[0].value(),
+    role_pins[1].value(),
+    role_pins[2].value()
+))
+print("Device Role          :", DEVICE_TYPE)
+print("Raw ID               : 0x{:X}".format(raw_id))
+print("Corrected Device ID  :", device_id)
+print("Generated Virtual MAC:", virtual_mac)
+print("Actual ESP32 MAC     :", esp_mac)
 print("==================================\n")
 
 if DEVICE_TYPE == "UNKNOWN":
