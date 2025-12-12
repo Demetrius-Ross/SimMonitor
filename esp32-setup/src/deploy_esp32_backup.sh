@@ -14,7 +14,7 @@ detect_com_port() {
     echo "ℹ️ Available Ports: $AVAILABLE_PORTS"
 
     # Check for COM6 or COM10
-    for PORT in COM6 COM7 COM8 COM9 COM5 COM3; do
+    for PORT in COM12 COM10 COM11 COM13; do
         if echo "$AVAILABLE_PORTS" | grep -q "$PORT"; then
             ESP_DEVICE=$PORT
             echo "✅ ESP32 detected at $ESP_DEVICE"
@@ -75,7 +75,7 @@ case $OPTION in
 
         # Step 2: Clean old files before flashing
         echo "🧹 Cleaning old files..."
-        mpremote connect $ESP_DEVICE fs rm -r /main.py /espnow_sender.py /espnow_receiver.py /espnow_relay.py 2>/dev/null
+        mpremote connect $ESP_DEVICE fs rm -r /main.py /gpio_test.py /espnow_sender.py /espnow_receiver.py /espnow_relay.py 2>/dev/null
 
         # Step 3: Copy the combined script to ESP32
         echo "📂 Uploading espnow-combined.py as main.py..."
@@ -110,10 +110,10 @@ case $OPTION in
         fi
 
         echo "🔥 Erasing ESP32 flash..."
-        esptool.py --chip esp32 erase_flash
+        python -m esptool --chip esp32 erase-flash
 
         echo "🚀 Writing new MicroPython firmware..."
-        esptool.py --chip esp32 write_flash -z 0x1000 "$BIN_FILE"
+        python -m esptool --chip esp32 write-flash -z 0x1000 "$BIN_FILE"
 
         echo "✅ Flashing complete! Run './deploy_esp32.sh 1' to deploy scripts."
         ;;
