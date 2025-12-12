@@ -57,10 +57,8 @@ print(f"Actual ESP32 MAC     : {esp_mac}")
 print("==================================\n")
 
 if DEVICE_TYPE == "UNKNOWN":
-    print("[ERROR] Invalid role configuration detected.")
+    print("[ERROR] Invalid role configuration.")
 elif device_id < 0 or device_id > 15:
-    print("[ERROR] Invalid device ID from hex switch.")
-elif device_id == 0:
-    print("[INFO] Device ID is 0 (valid if switch is set to 0).")
-
-print("[INFO] GPIO logic matches production firmware.")
+    print("[ERROR] Invalid device ID.")
+else:
+    print("[OK] GPIO configuration is valid.")
