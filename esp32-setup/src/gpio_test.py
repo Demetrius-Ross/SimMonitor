@@ -4,8 +4,8 @@ import network
 
 # === Define GPIO Pins for Role & ID Assignment ===
 role_pins = [
-    machine.Pin(18, machine.Pin.IN, machine.Pin.PULL_DOWN), 
-    machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_DOWN),
+    machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_DOWN), 
+    machine.Pin(18, machine.Pin.IN, machine.Pin.PULL_DOWN),
     machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN),
     ]
 id_pins = [machine.Pin(4, machine.Pin.IN), machine.Pin(16, machine.Pin.IN), machine.Pin(17, machine.Pin.IN), machine.Pin(5, machine.Pin.IN)]

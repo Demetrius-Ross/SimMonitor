@@ -13,8 +13,8 @@ ap.config(essid="SimNode", hidden=1)
 esp = espnow.ESPNow()
 esp.active(True)
 role_pins = [
-    machine.Pin(18, machine.Pin.IN, machine.Pin.PULL_DOWN), 
-    machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_DOWN),
+    machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_DOWN), 
+    machine.Pin(18, machine.Pin.IN, machine.Pin.PULL_DOWN),
     machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN),
     ]
 id_pins = [
