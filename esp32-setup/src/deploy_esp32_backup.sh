@@ -76,6 +76,7 @@ case $OPTION in
         # Step 2: Clean old files before flashing
         echo "🧹 Cleaning old files..."
         mpremote connect $ESP_DEVICE fs rm -r /main.py /gpio_test.py /espnow_sender.py /espnow_receiver.py /espnow_relay.py 2>/dev/null
+        mpremote connect $ESP_DEVICE fs rm -r /gpio_test.py 2>/dev/null
 
         # Step 3: Copy the combined script to ESP32
         echo "📂 Uploading espnow-combined.py as main.py..."

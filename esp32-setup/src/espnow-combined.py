@@ -33,17 +33,17 @@ role_value = (
 roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER", 3: "TELEMETRY"}
 DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
 
-id_pins = {
-    1: machine.Pin(17, machine.Pin.IN, machine.Pin.PULL_DOWN),
-    2: machine.Pin(5,  machine.Pin.IN, machine.Pin.PULL_DOWN),
-    4: machine.Pin(4,  machine.Pin.IN, machine.Pin.PULL_DOWN),
-    8: machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN),
-}
+A= machine.Pin(17, machine.Pin.IN, machine.Pin.PULL_DOWN)
+B= machine.Pin(5,  machine.Pin.IN, machine.Pin.PULL_DOWN)
+C= machine.Pin(4,  machine.Pin.IN, machine.Pin.PULL_DOWN)
+D= machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
-raw_id = 0
-for weight, pin in id_pins.items():
-    if pin.value():
-        raw_id |= weight
+raw_id = (
+    (D.value() << 3) |
+    (C.value() << 2) |
+    (B.value() << 1) |
+     A.value()
+)
 
 device_id = raw_id ^ 0x0F
 
