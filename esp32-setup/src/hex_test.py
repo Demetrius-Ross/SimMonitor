@@ -14,3 +14,11 @@ while True:
         states.append("{}={}".format(name, pin.value()))
     print(" | ".join(states))
     time.sleep(1)
+    
+    fixed = (
+    ((raw_id & 0b0001) << 1) |  # bit0 → bit1
+    ((raw_id & 0b0010) >> 1) |  # bit1 → bit0
+    ((raw_id & 0b0100) << 1) |  # bit2 → bit3
+    ((raw_id & 0b1000) >> 1)    # bit3 → bit2
+)
+    
