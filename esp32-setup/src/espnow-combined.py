@@ -39,10 +39,10 @@ C= machine.Pin(4,  machine.Pin.IN, machine.Pin.PULL_DOWN)
 D= machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
 raw_id = (
-    (D.value() << 3) |
-    (C.value() << 2) |
-    (B.value() << 1) |
-     A.value()
+    (A.value() << 3) |
+    (B.value() << 2) |
+    (C.value() << 1) |
+     D.value()
 )
 
 device_id = raw_id ^ 0x0F

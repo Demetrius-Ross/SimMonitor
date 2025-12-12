@@ -57,6 +57,7 @@ echo "3) Connect to ESP32 using minicom"
 echo "4) View logs using mpremote repl"
 echo "5) Run GPIO test script"
 echo "6) Deploy 'Telemetry.py' test script"
+echo "7) Run HEX test script"
 read -p "Enter choice (1/2/3/4/5/6): " OPTION
 
 case $OPTION in
@@ -77,6 +78,7 @@ case $OPTION in
         echo "🧹 Cleaning old files..."
         mpremote connect $ESP_DEVICE fs rm -r /main.py /gpio_test.py /espnow_sender.py /espnow_receiver.py /espnow_relay.py 2>/dev/null
         mpremote connect $ESP_DEVICE fs rm -r /gpio_test.py 2>/dev/null
+        mpremote connect $ESP_DEVICE fs rm -r /hex_test.py 2>/dev/null
 
         # Step 3: Copy the combined script to ESP32
         echo "📂 Uploading espnow-combined.py as main.py..."
@@ -85,6 +87,8 @@ case $OPTION in
         # Step 4: Copy gpio_test.py
         echo "📂 Uploading gpio_test.py..."
         mpremote connect $ESP_DEVICE fs cp gpio_test.py :gpio_test.py
+        echo "📂 Uploading hex_test.py..."
+        mpremote connect $ESP_DEVICE fs cp hex_test.py :hex_test.py
 
         # Step 5: Reset ESP32
         echo "🔄 Resetting ESP32..."
@@ -173,6 +177,12 @@ case $OPTION in
 
         echo "✅ Deployment complete! $FILE has been set as main.py"
         echo "📌 You can now monitor the ESP32 logs using: ./deploy_esp32.sh 4"
+        ;;
+
+        7)
+        echo "🔧 Running GPIO test..."
+        mpremote connect $ESP_DEVICE fs cp hex_test.py :hex_test.py
+        mpremote connect $ESP_DEVICE exec "import hex_test"
         ;;
 
     *)
