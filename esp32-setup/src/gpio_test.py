@@ -3,12 +3,20 @@ import ubinascii
 import network
 
 # === Define GPIO Pins for Role & ID Assignment ===
-role_pins = [machine.Pin(18, machine.Pin.IN), machine.Pin(19, machine.Pin.IN)]
+role_pins = [
+    machine.Pin(18, machine.Pin.IN, machine.Pin.PULL_DOWN), 
+    machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_DOWN),
+    machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN),
+    ]
 id_pins = [machine.Pin(4, machine.Pin.IN), machine.Pin(16, machine.Pin.IN), machine.Pin(17, machine.Pin.IN), machine.Pin(5, machine.Pin.IN)]
 
 # === Read Device Role from GPIO ===
-role_value = (role_pins[0].value() << 1) | role_pins[1].value()
-roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER"}
+role_value = (
+    (role_pins[0].value() << 2) | 
+    (role_pins[1].value() << 1) |
+     role_pins[2].value()
+)
+roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER", 3: "TELEMETRY"}
 DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
 
 # === Read Unique Device ID from GPIO ===
@@ -20,7 +28,7 @@ wlan.active(True)
 esp_mac = ubinascii.hexlify(wlan.config('mac'), ':').decode()
 
 # === Assign MAC Prefix Based on Device Type ===
-mac_prefix = {"SENDER": "AC:DB:00", "RELAY": "AC:DB:01", "RECEIVER": "AC:DB:02"}
+mac_prefix = {"SENDER": "AC:DB:00", "RELAY": "AC:DB:01", "RECEIVER": "AC:DB:02", "TELEMETRY": "AC:DB:03"}
 expected_mac = f"{mac_prefix[DEVICE_TYPE]}:{device_id:02X}:{device_id:02X}"
 
 # === Print Debugging Information ===
