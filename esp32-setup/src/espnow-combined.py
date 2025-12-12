@@ -12,18 +12,26 @@ ap.active(True)
 ap.config(essid="SimNode", hidden=1)
 esp = espnow.ESPNow()
 esp.active(True)
-role_pins = [machine.Pin(18, machine.Pin.IN), machine.Pin(19, machine.Pin.IN)]
+role_pins = [
+    machine.Pin(18, machine.Pin.IN, machine.Pin.PULL_DOWN), 
+    machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_DOWN),
+    machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN),
+    ]
 id_pins = [
     machine.Pin(4, machine.Pin.IN),
     machine.Pin(16, machine.Pin.IN),
     machine.Pin(17, machine.Pin.IN),
     machine.Pin(5, machine.Pin.IN, machine.Pin.PULL_DOWN)
 ]
-role_value = (role_pins[0].value() << 1) | role_pins[1].value()
-roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER"}
+role_value = (
+    (role_pins[0].value() << 2) | 
+    (role_pins[1].value() << 1) |
+     role_pins[2].value()
+)
+roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER", 3: "TELEMETRY"}
 DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
 device_id = sum(pin.value() << i for i, pin in enumerate(id_pins))
-mac_prefix = {"SENDER": "AC:DB:00", "RELAY": "AC:DB:01", "RECEIVER": "AC:DB:02"}
+mac_prefix = {"SENDER": "AC:DB:00", "RELAY": "AC:DB:01", "RECEIVER": "AC:DB:02", "TELEMETRY": "AC:DB:03"}
 virtual_mac = f"{mac_prefix[DEVICE_TYPE]}:{device_id:02X}:{device_id:02X}"
 real_mac = ubinascii.hexlify(sta.config('mac'), ':').decode()
 print(f"\n[BOOT] Role: {DEVICE_TYPE}, ID: {device_id}, Virtual MAC: {virtual_mac}, Real MAC: {real_mac}\n")
