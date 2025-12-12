@@ -4,52 +4,72 @@ import machine
 import ubinascii
 import time
 import struct
+
 sta = network.WLAN(network.STA_IF)
 sta.active(True)
 sta.config(channel=6)
+
 ap = network.WLAN(network.AP_IF)
 ap.active(True)
 ap.config(essid="SimNode", hidden=1)
+
 esp = espnow.ESPNow()
 esp.active(True)
+
 role_pins = [
-    machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_DOWN), 
+    machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_DOWN),
     machine.Pin(18, machine.Pin.IN, machine.Pin.PULL_DOWN),
     machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN),
-    ]
+]
+
 time.sleep_ms(50)
+
 role_value = (
-    (role_pins[0].value() << 2) | 
+    (role_pins[0].value() << 2) |
     (role_pins[1].value() << 1) |
      role_pins[2].value()
 )
-id_pins = [
+
+roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER", 3: "TELEMETRY"}
+DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
+
+id_pins = {
     1: machine.Pin(17, machine.Pin.IN, machine.Pin.PULL_DOWN),
-    2: machine.Pin(5, machine.Pin.IN, machine.Pin.PULL_DOWN),
-    4: machine.Pin(4, machine.Pin.IN, machine.Pin.PULL_DOWN),
+    2: machine.Pin(5,  machine.Pin.IN, machine.Pin.PULL_DOWN),
+    4: machine.Pin(4,  machine.Pin.IN, machine.Pin.PULL_DOWN),
     8: machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN),
-]
-raw_id=0
+}
+
+raw_id = 0
 for weight, pin in id_pins.items():
     if pin.value():
         raw_id |= weight
+
 device_id = raw_id ^ 0x0F
-roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER", 3: "TELEMETRY"}
-DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
-#device_id = sum(pin.value() << i for i, pin in enumerate(id_pins))
-mac_prefix = {"SENDER": "AC:DB:00", "RELAY": "AC:DB:01", "RECEIVER": "AC:DB:02", "TELEMETRY": "AC:DB:03"}
-virtual_mac = f"{mac_prefix[DEVICE_TYPE]}:{device_id:02X}:{device_id:02X}"
+
+mac_prefix = {
+    "SENDER": "AC:DB:00",
+    "RELAY": "AC:DB:01",
+    "RECEIVER": "AC:DB:02",
+    "TELEMETRY": "AC:DB:03",
+}
+
+virtual_mac = f"{mac_prefix.get(DEVICE_TYPE, 'AC:DB:FF')}:{device_id:02X}:{device_id:02X}"
 real_mac = ubinascii.hexlify(sta.config('mac'), ':').decode()
+
 print(f"\n[BOOT] Role: {DEVICE_TYPE}, ID: {device_id}, Virtual MAC: {virtual_mac}, Real MAC: {real_mac}\n")
+
 broadcast_mac = b'\xff\xff\xff\xff\xff\xff'
 try:
     esp.add_peer(broadcast_mac)
 except:
     pass
+
 PACKET_FORMAT = ">16sBBHHH"
 PACKET_SIZE = struct.calcsize(PACKET_FORMAT)
 IDENTITY_FORMAT = "16s6s"
 IDENTITY_SIZE = struct.calcsize(IDENTITY_FORMAT)
+
 def run_sender():
     def broadcast_identity():
         padded_vmac = virtual_mac.encode()
