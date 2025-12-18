@@ -1,0 +1,122 @@
+
+(kicad_symbol_lib (version 20211014) (generator kicad_symbol_editor)
+  (symbol "1770979" (pin_names (offset 1.016)) (in_bom yes) (on_board yes)
+    (property "Reference" "J" (id 0) (at -6.85 15.24 0)
+      (effects (font (size 1.27 1.27)) (justify bottom left))
+    )
+    (property "Value" "1770979" (id 1) (at -6.35 -17.78 0)
+      (effects (font (size 1.27 1.27)) (justify bottom left))
+    )
+    (property "Footprint" "1770979:PHOENIX_1770979" (id 2) (at 0 0 0)
+      (effects (font (size 1.27 1.27)) (justify bottom) hide)
+    )
+    (property "MANUFACTURER" "PHOENIX" (id 4) (at 0 0 0)
+      (effects (font (size 1.27 1.27)) (justify bottom) hide)
+    )
+    (symbol "1770979_0_0"
+      (polyline
+        (pts (xy -5.08 12.7) (xy -5.08 10.16)) (stroke (width 0.1524))
+      )
+      (polyline
+        (pts (xy -5.08 11.43) (xy -3.81 11.43)) (stroke (width 0.1524))
+      )
+      (circle (center -3.175 11.43) (radius 0.635)
+        (stroke (width 0.1524)) (fill (type none))
+      )
+      (polyline
+        (pts (xy -5.08 5.08) (xy -5.08 2.54)) (stroke (width 0.1524))
+      )
+      (polyline
+        (pts (xy -5.08 3.81) (xy -3.81 3.81)) (stroke (width 0.1524))
+      )
+      (circle (center -3.175 3.81) (radius 0.635)
+        (stroke (width 0.1524)) (fill (type none))
+      )
+      (polyline
+        (pts (xy -5.08 -2.54) (xy -5.08 -5.08)) (stroke (width 0.1524))
+      )
+      (polyline
+        (pts (xy -5.08 -3.81) (xy -3.81 -3.81)) (stroke (width 0.1524))
+      )
+      (circle (center -3.175 -3.81) (radius 0.635)
+        (stroke (width 0.1524)) (fill (type none))
+      )
+      (polyline
+        (pts (xy -5.08 -10.16) (xy -5.08 -12.7)) (stroke (width 0.1524))
+      )
+      (polyline
+        (pts (xy -5.08 -11.43) (xy -3.81 -11.43)) (stroke (width 0.1524))
+      )
+      (circle (center -3.175 -11.43) (radius 0.635)
+        (stroke (width 0.1524)) (fill (type none))
+      )
+      (rectangle (start -6.35 -15.24) (end 6.35 15.24)
+        (stroke (width 0.254)) (fill (type background))
+      )
+      (pin passive line (at -10.16 12.7 0) (length 5.08)
+        (name "1_1"
+          (effects (font (size 1.016 1.016)))
+        )
+        (number "1_1"
+          (effects (font (size 1.016 1.016)))
+        )
+      )
+      (pin passive line (at -10.16 10.16 0) (length 5.08)
+        (name "1_2"
+          (effects (font (size 1.016 1.016)))
+        )
+        (number "1_2"
+          (effects (font (size 1.016 1.016)))
+        )
+      )
+      (pin passive line (at -10.16 5.08 0) (length 5.08)
+        (name "2_1"
+          (effects (font (size 1.016 1.016)))
+        )
+        (number "2_1"
+          (effects (font (size 1.016 1.016)))
+        )
+      )
+      (pin passive line (at -10.16 2.54 0) (length 5.08)
+        (name "2_2"
+          (effects (font (size 1.016 1.016)))
+        )
+        (number "2_2"
+          (effects (font (size 1.016 1.016)))
+        )
+      )
+      (pin passive line (at -10.16 -2.54 0) (length 5.08)
+        (name "3_1"
+          (effects (font (size 1.016 1.016)))
+        )
+        (number "3_1"
+          (effects (font (size 1.016 1.016)))
+        )
+      )
+      (pin passive line (at -10.16 -5.08 0) (length 5.08)
+        (name "3_2"
+          (effects (font (size 1.016 1.016)))
+        )
+        (number "3_2"
+          (effects (font (size 1.016 1.016)))
+        )
+      )
+      (pin passive line (at -10.16 -10.16 0) (length 5.08)
+        (name "4_1"
+          (effects (font (size 1.016 1.016)))
+        )
+        (number "4_1"
+          (effects (font (size 1.016 1.016)))
+        )
+      )
+      (pin passive line (at -10.16 -12.7 0) (length 5.08)
+        (name "4_2"
+          (effects (font (size 1.016 1.016)))
+        )
+        (number "4_2"
+          (effects (font (size 1.016 1.016)))
+        )
+      )
+    )
+  )
+)
