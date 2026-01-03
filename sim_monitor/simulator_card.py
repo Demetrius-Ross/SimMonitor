@@ -8,20 +8,17 @@ from PyQt5.QtGui import (
     QPixmap, QFont, QRegion, QPainterPath, QPainter, QColor, QBrush
 )
 from PyQt5.QtCore import Qt, QRectF, QTimer
-import os
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-IMAGES_DIR = os.path.join(BASE_DIR, "images")
 
 
 SIM_IMAGES = {
-    "motion-on": os.path.join(IMAGES_DIR,"FINAL-SIM-UP.png"),
-    "ramping": os.path.join(IMAGES_DIR,"FINAL-RAMP-UP.png"),
-    "at-home": os.path.join(IMAGES_DIR,"FINAL-SIM-DOWN.png"),
-    "offline": os.path.join(IMAGES_DIR,"FINAL-SIM-DOWN.png"),
+    "motion-on": "images/FINAL-SIM-UP.png",
+    "ramping": "images/FINAL-RAMP-UP.png",
+    "at-home": "images/FINAL-SIM-DOWN.png",
+    "offline": "images/FINAL-SIM-DOWN.png",
 
     # Ramp disconnected variants
-    "motion-on-no-ramp": os.path.join(IMAGES_DIR,"FINAL-SIM-UP-NO-RAMP.png"),
-    "at-home-no-ramp": os.path.join(IMAGES_DIR,"FINAL-SIM-DOWN-NO-RAMP.png"),
+    "motion-on-no-ramp": "images/FINAL-SIM-UP-NO-RAMP.png",
+    "at-home-no-ramp": "images/FINAL-SIM-DOWN-NO-RAMP.png",
 }
 
 
@@ -113,7 +110,7 @@ class SimulatorCard(QWidget):
         self.last_motion_duration = None
 
         # Overall size
-        self.setFixedSize(int(310 * self.scale), int(450 * self.scale))
+        self.setFixedSize(int(310 * self.scale), int(650 * self.scale))
 
         # Main layout
         self.stack = QStackedLayout(self)
@@ -139,8 +136,8 @@ class SimulatorCard(QWidget):
                 border-radius: 16px;
             }
         """)
-        self.card.setMinimumHeight(int(430 * self.scale))
-        self.card.setMaximumHeight(int(430 * self.scale))
+        self.card.setMinimumHeight(int(400 * self.scale))
+        self.card.setMaximumHeight(int(400 * self.scale))
 
         card_layout = QVBoxLayout(self.card)
         card_layout.setContentsMargins(
@@ -177,8 +174,8 @@ class SimulatorCard(QWidget):
         self.motion_label = QLabel("No motion recorded yet")
         self.motion_label.setAlignment(Qt.AlignCenter)
         #self.motion_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.motion_label.setFont(QFont("Arial", int(16 * self.scale), QFont.Bold))
-        #self.motion_label.setStyleSheet("color: #555;")
+        self.motion_label.setFont(QFont("Arial", int(14 * self.scale), QFont.Bold))
+        self.motion_label.setStyleSheet("color: #555;")
         card_layout.addWidget(self.motion_label)
 
         outer_layout.addWidget(self.card)
@@ -223,7 +220,7 @@ class SimulatorCard(QWidget):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         # Ensure the card fills the full expected space
-        self.card.setFixedHeight(int(430 * self.scale))
+        self.card.setFixedHeight(int(400 * self.scale))
         self.overlay.setGeometry(0, 0, self.card.width(), self.card.height())
         self.apply_overlay_mask()
 
@@ -232,10 +229,10 @@ class SimulatorCard(QWidget):
         if (self.in_motion and self.motion_start_ts) or \
         (self.last_motion_end and self.last_motion_duration):
             # Has current or historical motion → shrink
-            self.image.setFixedHeight(int(300 * self.scale))
+            self.image.setFixedHeight(int(298 * self.scale))
         else:
             # No motion recorded yet → full height
-            self.image.setFixedHeight(int(325 * self.scale))
+            self.image.setFixedHeight(int(330 * self.scale))
 
     # ------------------------------------------------------------------
     # DB → UI entry point
@@ -347,7 +344,7 @@ class SimulatorCard(QWidget):
                         padding: 8px 16px;
                         border-radius: 6px;
                     """)
-                    self.status_bar.enable_animation(False)
+                    self.status_bar.enable_animation(True)
                 elif self.motion_state == 1:
                     self.status_bar.setText("Standby (No Ramp)")
                     self.status_bar.setStyleSheet("""
@@ -378,7 +375,7 @@ class SimulatorCard(QWidget):
                 padding: 8px 16px;
                 border-radius: 6px;
             """)
-            self.status_bar.enable_animation(False)
+            self.status_bar.enable_animation(True)
 
         elif self.motion_state == 1:
             if self.ramp_state == 0:
@@ -457,7 +454,7 @@ class SimulatorCard(QWidget):
                 m, s = divmod(rem, 60)
                 end_local = time.strftime("%H:%M:%S", time.localtime(self.last_motion_end))
                 self.motion_label.setText(
-                    f"Last in motion at {end_local}\n"
+                    f"Last motion ended at {end_local}\n"
                     f"Duration {h:02d}:{m:02d}:{s:02d}"
                 )
             else:
