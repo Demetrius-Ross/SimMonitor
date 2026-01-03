@@ -217,7 +217,7 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn, rece
 
             # Sender last-seen timestamps
             last_seen = {}
-            SENDER_TIMEOUT = 90
+            SENDER_TIMEOUT = 180
 
             while _RUN_FLAG:
 
