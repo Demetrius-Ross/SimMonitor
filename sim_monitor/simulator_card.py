@@ -14,10 +14,10 @@ IMAGES_DIR = os.path.join(BASE_DIR, "images")
 
 
 SIM_IMAGES = {
-    "motion-on": os.path.join(IMAGES_DIR,"FINAL-SIM-UP-ICE.png"),
-    "ramping": os.path.join(IMAGES_DIR,"FINAL-RAMP-UP-ICE.png"),
-    "at-home": os.path.join(IMAGES_DIR,"FINAL-SIM-DOWN-ICE.png"),
-    "offline": os.path.join(IMAGES_DIR,"FINAL-SIM-DOWN-ICE.png"),
+    "motion-on": os.path.join(IMAGES_DIR,"FINAL-SIM-UP.png"),
+    "ramping": os.path.join(IMAGES_DIR,"FINAL-RAMP-UP.png"),
+    "at-home": os.path.join(IMAGES_DIR,"FINAL-SIM-DOWN.png"),
+    "offline": os.path.join(IMAGES_DIR,"FINAL-SIM-DOWN.png"),
 
     # Ramp disconnected variants
     "motion-on-no-ramp": os.path.join(IMAGES_DIR,"FINAL-SIM-UP-NO-RAMP.png"),
