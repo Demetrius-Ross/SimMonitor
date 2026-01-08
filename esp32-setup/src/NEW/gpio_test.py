@@ -3,15 +3,15 @@
 # GPIO Role & ID Verification (MKIV + Legacy aware)
 #
 # What it does:
-#   ✅ Detects MKIV mode:
+#   Detects MKIV mode:
 #        MKIV if ONLY GPIO19 is HIGH (GPIO18=0, GPIO14=0)
-#   ✅ Decodes role correctly for MKIV vs Legacy
-#   ✅ Decodes device_id with the correct hex switch logic:
+#   Decodes role correctly for MKIV vs Legacy
+#   Decodes device_id with the correct hex switch logic:
 #        MKIV:   raw_id=(17<<3)|(5<<2)|(4<<1)|16 ; device_id = raw_id ^ 0x0F
 #        Legacy: device_id=(4<<0)|(16<<1)|(17<<2)|(5<<3) ; (no XOR)
-#   ✅ Shows Virtual MAC + Real ESP32 MAC
-#   ✅ MKIV only: drives a WS2812/NeoPixel LED on GPIO27 to show role + blink patterns
-#   ✅ "Simulate broadcast of true MAC":
+#   Shows Virtual MAC + Real ESP32 MAC
+#   MKIV only: drives a WS2812/NeoPixel LED on GPIO27 to show role + blink patterns
+#   "Simulate broadcast of true MAC":
 #        - Prints an "IDENTITY" line that mimics what your ESP-NOW identity packet represents
 #        - Optionally prints it repeatedly every N seconds (no ESP-NOW needed)
 #

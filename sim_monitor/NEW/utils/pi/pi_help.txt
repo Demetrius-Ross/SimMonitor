@@ -1,0 +1,6 @@
+RandD: 192.168.50.233
+
+ssh randd@192.168.50.233
+
+scp C:\path\to\your\file.txt randd@192.168.50.233:/home/randd/
+sftp://randd@192.168.50.233
