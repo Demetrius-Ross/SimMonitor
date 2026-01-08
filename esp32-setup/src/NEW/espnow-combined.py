@@ -1,31 +1,34 @@
-# simnode_espnow_unified_mkiv_legacy.py
+# simnode_espnow_unified_mkiv_legacy_serialcsv.py
 # ------------------------------------------------------------
 # Unified ESP-NOW firmware for SENDER / RELAY / RECEIVER
 #
-# Includes:
-#   • Queue-based relay (no heavy work in IRQ)
-#   • Receiver drains RX queue (no 50ms blind spots)
-#   • Heartbeat jitter + faster heartbeat
-#   • Real-MAC discovery + opportunistic unicast
-#   • ESP-NOW application-level PING / PONG reachability verification
-#   • Optional enhancement: Sender boot announces (IDENTITY + HB + PONG)
+# KEY IMPROVEMENTS:
+#   • MKIV vs Legacy detection + correct role/id logic
+#   • MKIV-only RGB (WS2812/NeoPixel) support on GPIO27
+#   • Real-MAC discovery via identity broadcasts
+#   • Opportunistic unicast to known receiver MAC (less broadcast congestion)
+#   • Relay uses IRQ -> queue -> main loop (prevents IRQ bog-down)
+#   • Receiver drains RX queue aggressively (reduces missed packets)
+#   • Heartbeats use jitter to avoid synchronized bursts
+#   • ESP-NOW application-level PING/PONG verification:
+#       - Receiver suspects offline after timeout
+#       - Sends PING to sender real MAC (if known)
+#       - Sender replies with PONG
+#       - Receiver confirms offline only after retries
+#   • Receiver outputs compact serial CSV frames (Pi/Qt friendly):
+#       R,1
+#       O,<sid>,<0|1>
+#       S,<sid>,<motion>,<ramp>,<seq>
 #
-# MKIV / Legacy split:
-#   • MKIV detect: if ONLY GPIO19 is pulled HIGH (GPIO18=0, GPIO14=0) => MKIV
-#   • MKIV role: uses GPIO18/GPIO14 as 2-bit role selector
-#   • MKIV ID logic (current): raw_id = (17<<3)|(5<<2)|(4<<1)|16 ; device_id = raw_id ^ 0x0F
-#   • MKIV LED: single NeoPixel/WS2812 data-in on GPIO27
+# BOARD SPLIT:
+#   MKIV detect: ONLY GPIO19 high while GPIO18=0 and GPIO14=0
+#   MKIV role: GPIO18/GPIO14 (2-bit) -> 0..3 roles
+#   MKIV ID: raw=(17<<3)|(5<<2)|(4<<1)|16; id=raw^0x0F
+#   MKIV LED: WS2812 on GPIO27
 #
-#   • Legacy boards: NO LED support
-#   • Legacy role logic (from espnow-combined.py): role uses GPIO18/GPIO19 (2-bit)
-#   • Legacy ID logic (from espnow-combined.py):
-#         old_raw_id = (GPIO4<<0) | (GPIO16<<1) | (GPIO17<<2) | (GPIO5<<3)
-#         device_id = old_raw_id   (no XOR)
-#
-# Serial output compatibility (Qt serial handler):
-#   • Receiver prints:
-#       [DATA] Received from Sender ID X: RampState=Y, MotionState=Z, Seq=N
-#       [HEARTBEAT] ... (throttled)
+#   Legacy role: GPIO18/GPIO19 (2-bit) -> 0..3 roles
+#   Legacy ID: id=(4<<0)|(16<<1)|(17<<2)|(5<<3) (no XOR)
+#   Legacy LED: none
 # ------------------------------------------------------------
 
 import network
@@ -36,11 +39,12 @@ import time
 import struct
 import urandom
 
-# NeoPixel (only used on MKIV)
+# NeoPixel is used ONLY on MKIV; guarded import
 try:
     import neopixel
 except Exception:
     neopixel = None
+
 
 # =========================================================
 # Helpers
@@ -59,14 +63,16 @@ def _pad16(b: bytes) -> bytes:
 def _jitter_ms(max_ms=2000) -> int:
     return urandom.getrandbits(16) % max_ms
 
+
 # =========================================================
 # Wi-Fi / ESP-NOW init
 # =========================================================
 sta = network.WLAN(network.STA_IF)
 sta.active(True)
 
+# Reduce power-save latency if supported
 try:
-    sta.config(pm=0)  # reduce Wi-Fi power-save latency if supported
+    sta.config(pm=0)
 except Exception:
     pass
 
@@ -85,52 +91,54 @@ try:
 except Exception:
     pass
 
+
 # =========================================================
-# MKIV detection + role decode
+# MKIV detect + role decode
 # =========================================================
-# Role pins present on both, but semantics differ by board.
-PIN19 = machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_DOWN)
+PIN19 = machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_DOWN)  # MKIV flag pin (only high)
 PIN18 = machine.Pin(18, machine.Pin.IN, machine.Pin.PULL_DOWN)
 PIN14 = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
 time.sleep_ms(50)
 
-# MKIV detect: ONLY GPIO19 high, and GPIO18/GPIO14 low.
 mkiv_flag = (PIN19.value() == 1 and PIN18.value() == 0 and PIN14.value() == 0)
 
 roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER", 3: "TELEMETRY"}
 
 if mkiv_flag:
-    # MKIV: role is 2-bit on (18,14)
+    # MKIV role uses GPIO18/GPIO14
     role_value = (PIN18.value() << 1) | PIN14.value()
 else:
-    # Legacy: role is 2-bit on (18,19) per espnow-combined.py
+    # Legacy role uses GPIO18/GPIO19 (espnow-combined logic)
     role_value = (PIN18.value() << 1) | PIN19.value()
 
 DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
+
 
 # =========================================================
 # Device ID decode (MKIV vs Legacy)
 # =========================================================
 if mkiv_flag:
-    # MKIV "current logic" (your A/B/C/D):
-    # A=GPIO17 (bit3), B=GPIO5 (bit2), C=GPIO4 (bit1), D=GPIO16 (bit0)
+    # MKIV current hex logic:
+    # A=GPIO17(bit3), B=GPIO5(bit2), C=GPIO4(bit1), D=GPIO16(bit0), then XOR invert
     A = machine.Pin(17, machine.Pin.IN, machine.Pin.PULL_DOWN)
     B = machine.Pin(5,  machine.Pin.IN, machine.Pin.PULL_DOWN)
     C = machine.Pin(4,  machine.Pin.IN, machine.Pin.PULL_DOWN)
     D = machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
-    raw_id = ((A.value() << 3) | (B.value() << 2) | (C.value() << 1) | D.value())
-    device_id = raw_id ^ 0x0F  # invert
+    raw_id = (A.value() << 3) | (B.value() << 2) | (C.value() << 1) | D.value()
+    device_id = raw_id ^ 0x0F
 else:
     # Legacy logic from espnow-combined.py:
-    # id_pins = [GPIO4, GPIO16, GPIO17, GPIO5] with enumerate bit positions 0..3
+    # device_id = (GPIO4<<0)|(GPIO16<<1)|(GPIO17<<2)|(GPIO5<<3)
     P4  = machine.Pin(4,  machine.Pin.IN, machine.Pin.PULL_DOWN)
     P16 = machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN)
     P17 = machine.Pin(17, machine.Pin.IN, machine.Pin.PULL_DOWN)
     P5  = machine.Pin(5,  machine.Pin.IN, machine.Pin.PULL_DOWN)
 
-    device_id = (P4.value() << 0) | (P16.value() << 1) | (P17.value() << 2) | (P5.value() << 3)
+    raw_id = (P4.value() << 0) | (P16.value() << 1) | (P17.value() << 2) | (P5.value() << 3)
+    device_id = raw_id
+
 
 # =========================================================
 # Virtual MAC scheme
@@ -142,15 +150,16 @@ mac_prefix = {
     "TELEMETRY":"AC:DB:03",
 }
 
-virtual_mac = f"{mac_prefix.get(DEVICE_TYPE, 'AC:DB:FF')}:{device_id:02X}:{device_id:02X}"
+virtual_mac = "{}:{:02X}:{:02X}".format(mac_prefix.get(DEVICE_TYPE, "AC:DB:FF"), device_id, device_id)
 real_mac = ubinascii.hexlify(sta.config("mac"), ":").decode()
 
 FINAL_VMAC = "AC:DB:02:01:01"
 
 print(f"\n[BOOT] MKIV={mkiv_flag} Role={DEVICE_TYPE} ID={device_id} Virtual={virtual_mac} Real={real_mac}\n")
 
+
 # =========================================================
-# MKIV LED (NeoPixel on GPIO27) - MKIV only
+# MKIV LED (GPIO27 NeoPixel) - MKIV only
 # =========================================================
 np = None
 if mkiv_flag and neopixel is not None:
@@ -167,14 +176,14 @@ def led_set(r, g, b):
 
 def _role_color():
     if DEVICE_TYPE == "SENDER":
-        return (0, 25, 0)     # green
+        return (0, 25, 0)
     if DEVICE_TYPE == "RELAY":
-        return (0, 0, 25)     # blue
+        return (0, 0, 25)
     if DEVICE_TYPE == "RECEIVER":
-        return (25, 0, 25)    # purple
+        return (25, 0, 25)
     if DEVICE_TYPE == "TELEMETRY":
-        return (25, 15, 0)    # amber
-    return (10, 10, 10)       # gray
+        return (25, 15, 0)
+    return (10, 10, 10)
 
 _led_pulse_until = 0
 
@@ -193,8 +202,9 @@ def led_service():
         _led_pulse_until = 0
         led_set(*_role_color())
 
-# steady role color
+# steady color
 led_set(*_role_color())
+
 
 # =========================================================
 # Packet formats + msg types
@@ -216,6 +226,7 @@ def make_identity_packet(vmac_str: str, rmac: bytes) -> bytes:
 def parse_identity_packet(msg: bytes):
     vmac_bytes, rmac = struct.unpack(IDENTITY_FORMAT, msg)
     return vmac_bytes.decode().strip("\x00"), rmac
+
 
 # =========================================================
 # SENDER
@@ -299,7 +310,7 @@ def run_sender():
 
             ln = len(msg)
 
-            # Learn receiver real MAC from identity broadcasts
+            # Learn receiver real MAC via identity broadcasts
             if ln == IDENTITY_SIZE:
                 try:
                     vmac, rmac = parse_identity_packet(msg)
@@ -313,7 +324,7 @@ def run_sender():
                     pass
                 continue
 
-            # Answer pings addressed to this sender VMAC
+            # Respond to pings addressed to this sender VMAC
             if ln == PACKET_SIZE:
                 try:
                     dest_field, sid, msg_type, ramp, mot, seq = struct.unpack(PACKET_FORMAT, msg)
@@ -333,7 +344,7 @@ def run_sender():
         led_service()
         time.sleep_ms(10)
 
-    # Immediately send HB + PONG so receiver clears offline quickly
+    # Send HB + PONG immediately so receiver clears offline quickly
     send_to_receiver(MSG_HB,   get_ramp_state(), get_motion_state())
     send_to_receiver(MSG_PONG, get_ramp_state(), get_motion_state())
     # ----------------------------------------------
@@ -361,8 +372,9 @@ def run_sender():
         led_service()
         time.sleep_ms(20)
 
+
 # =========================================================
-# RELAY (queued IRQ)
+# RELAY (IRQ -> queue -> main loop)
 # =========================================================
 def run_relay():
     known_peers = {}  # vmac -> {"real_mac": bytes, "type": str, "hop": int}
@@ -372,13 +384,11 @@ def run_relay():
     q_msg  = [None] * QSIZE
     q_head = 0
     q_tail = 0
-    q_drop = 0
 
     def q_put(peer, msg):
-        nonlocal q_head, q_tail, q_drop
+        nonlocal q_head, q_tail
         nxt = (q_head + 1) % QSIZE
         if nxt == q_tail:
-            q_drop += 1
             return False
         q_peer[q_head] = peer
         q_msg[q_head]  = msg
@@ -418,6 +428,7 @@ def run_relay():
             known_peers[vmac]["type"] = "SENDER"
 
     def forward(dest_vmac: str, packet: bytes) -> bool:
+        # Prefer direct to receiver if known
         if dest_vmac == FINAL_VMAC and dest_vmac in known_peers:
             rmac = known_peers[dest_vmac]["real_mac"]
             try:
@@ -425,6 +436,7 @@ def run_relay():
             except Exception:
                 return False
 
+        # Otherwise forward to best relay if known, else broadcast
         best_relay = None
         best_hop = 999
         for vmac, info in known_peers.items():
@@ -448,7 +460,7 @@ def run_relay():
 
     esp.irq(on_data_recv)
 
-    print("[RELAY] Ready (IRQ queued, main-loop forwarding)")
+    print("[RELAY] Ready (queued IRQ forwarding)")
     led_set(*_role_color())
 
     while True:
@@ -474,26 +486,31 @@ def run_relay():
         led_service()
         time.sleep_ms(10)
 
+
 # =========================================================
-# RECEIVER (drain loop + PING/PONG verify)
+# RECEIVER (serial CSV output + ping/pong verify)
 # =========================================================
 def run_receiver():
-    # Qt serial handler compatibility:
-    PRINT_DATA_ALWAYS = True
-    PRINT_HEARTBEATS  = True
-    HB_PRINT_MIN_MS   = 5000  # per-sender heartbeat print throttle
+    # Serial protocol:
+    #   R,1
+    #   O,<sid>,<0|1>
+    #   S,<sid>,<motion>,<ramp>,<seq>
 
-    last_hb_print = {}  # sid -> ticks_ms
+    EMIT_RECEIVER_ALIVE = True
+    RECEIVER_ALIVE_MS = 5000
 
-    senders = {}            # sid -> dict
-    sender_mac_by_id = {}   # sid -> real MAC (learned from identity)
-
-    HEARTBEAT_TIMEOUT_MS = 60000  # suspect offline after 60s no traffic
+    HEARTBEAT_TIMEOUT_MS = 60000
     PING_WAIT_MS         = 800
     PING_RETRIES         = 2
 
     IDENTITY_BASE_MS = 30000
-    next_identity = _ticks_ms() + IDENTITY_BASE_MS + _jitter_ms(2500)
+
+    now = _ticks_ms()
+    next_identity = now + IDENTITY_BASE_MS + _jitter_ms(2500)
+    next_alive = now + RECEIVER_ALIVE_MS
+
+    senders = {}           # sid -> record
+    sender_mac_by_id = {}  # sid -> real mac
 
     def parse_id_from_vmac(vmac: str):
         try:
@@ -509,8 +526,17 @@ def run_receiver():
         except Exception:
             pass
 
+    def emit_state(sid: int, motion: int, ramp: int, seq: int):
+        print("S,{},{},{},{}".format(sid, motion, ramp, seq))
+
+    def emit_online(sid: int, online: int):
+        print("O,{},{}".format(sid, online))
+
+    def emit_receiver_alive():
+        print("R,1")
+
     def send_ping(sid: int, sender_rmac: bytes):
-        sender_vmac = f"AC:DB:00:{sid:02X}:{sid:02X}"
+        sender_vmac = "AC:DB:00:{:02X}:{:02X}".format(sid, sid)
         dest_field = _pad16(sender_vmac.encode())
         pkt = struct.pack(PACKET_FORMAT, dest_field, device_id, MSG_PING, 0, 0, 0)
         try:
@@ -538,6 +564,7 @@ def run_receiver():
             except Exception:
                 pass
 
+    # Boot identity broadcast
     time.sleep_ms(_jitter_ms(400))
     broadcast_receiver_identity()
     led_set(*_role_color())
@@ -545,11 +572,15 @@ def run_receiver():
     while True:
         now = _ticks_ms()
 
+        if EMIT_RECEIVER_ALIVE and _ticks_diff(now, next_alive) >= 0:
+            emit_receiver_alive()
+            next_alive = now + RECEIVER_ALIVE_MS
+
         if _ticks_diff(now, next_identity) >= 0:
             broadcast_receiver_identity()
             next_identity = now + IDENTITY_BASE_MS + _jitter_ms(3500)
 
-        # Drain RX queue
+        # Drain RX
         while True:
             peer, msg = esp.recv()
             if not msg:
@@ -585,49 +616,38 @@ def run_receiver():
                             "last_seq": seq,
                             "ramp": ramp_state,
                             "motion": motion_state,
-                            "hb": 0,
-                            "data": 0,
-                            "miss_seq": 0,
                             "offline": False,
+                            "miss_seq": 0,
                         }
                         senders[sid] = rec
+                        emit_online(sid, 1)
+                        emit_state(sid, motion_state, ramp_state, seq)
 
                     gap = (seq - rec["last_seq"]) & 0xFFFF
                     if gap > 1:
                         rec["miss_seq"] += (gap - 1)
-
                     rec["last_seq"] = seq
+
                     rec["last_seen"] = now
-                    rec["ramp"] = ramp_state
-                    rec["motion"] = motion_state
-
-                    if msg_type == MSG_HB:
-                        rec["hb"] += 1
-                        if PRINT_HEARTBEATS:
-                            lastp = last_hb_print.get(sid, 0)
-                            if _ticks_diff(now, lastp) > HB_PRINT_MIN_MS:
-                                last_hb_print[sid] = now
-                                print(f"[HEARTBEAT] Received from Sender ID {sid}: "
-                                      f"RampState={ramp_state}, MotionState={motion_state}, Seq={seq}")
-
-                    elif msg_type == MSG_DATA:
-                        rec["data"] += 1
-                        if PRINT_DATA_ALWAYS:
-                            print(f"[DATA] Received from Sender ID {sid}: "
-                                  f"RampState={ramp_state}, MotionState={motion_state}, Seq={seq}")
-
-                    elif msg_type == MSG_PONG:
-                        # do not print in production
-                        pass
 
                     if rec["offline"]:
                         rec["offline"] = False
+                        emit_online(sid, 1)
+
+                    changed = (ramp_state != rec["ramp"]) or (motion_state != rec["motion"])
+                    rec["ramp"] = ramp_state
+                    rec["motion"] = motion_state
+
+                    # Emit state only when changed OR on explicit DATA frames
+                    if changed or msg_type == MSG_DATA:
+                        emit_state(sid, motion_state, ramp_state, seq)
 
                     led_pulse(25, 25, 25, 25)
+
                 except Exception:
                     pass
 
-        # Active verification on timeout
+        # Timeout verify
         for sid, rec in senders.items():
             if rec["offline"]:
                 continue
@@ -636,6 +656,8 @@ def run_receiver():
                 rmac = sender_mac_by_id.get(sid)
                 if not rmac:
                     rec["offline"] = True
+                    emit_online(sid, 0)
+                    led_pulse(25, 0, 0, 120)
                     continue
 
                 alive = False
@@ -647,8 +669,12 @@ def run_receiver():
                         ok, ramp, mot, seq = try_consume_pong_for(sid)
                         if ok:
                             rec["last_seen"] = _ticks_ms()
-                            rec["ramp"] = ramp
-                            rec["motion"] = mot
+                            if ramp is not None and mot is not None:
+                                changed = (ramp != rec["ramp"]) or (mot != rec["motion"])
+                                rec["ramp"] = ramp
+                                rec["motion"] = mot
+                                if changed:
+                                    emit_state(sid, mot, ramp, seq if seq is not None else rec["last_seq"])
                             alive = True
                             break
                         time.sleep_ms(5)
@@ -658,10 +684,12 @@ def run_receiver():
 
                 if not alive:
                     rec["offline"] = True
+                    emit_online(sid, 0)
                     led_pulse(25, 0, 0, 120)
 
         led_service()
         time.sleep_ms(5)
+
 
 # =========================================================
 # Dispatch
