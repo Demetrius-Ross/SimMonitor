@@ -1,4 +1,3 @@
-# simnode_espnow_unified_mkiv_legacy_serialcsv.py
 # ------------------------------------------------------------
 # Unified ESP-NOW firmware for SENDER / RELAY / RECEIVER
 #
@@ -101,7 +100,7 @@ PIN14 = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
 time.sleep_ms(50)
 
-mkiv_flag = (PIN19.value() == 1 and PIN18.value() == 0 and PIN14.value() == 0)
+mkiv_flag = (PIN19.value() == 1)
 
 roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER", 3: "TELEMETRY"}
 
