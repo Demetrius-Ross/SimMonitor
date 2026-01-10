@@ -1,33 +1,11 @@
 # ------------------------------------------------------------
 # Unified ESP-NOW firmware for SENDER / RELAY / RECEIVER
 #
-# KEY IMPROVEMENTS:
-#   • MKIV vs Legacy detection + correct role/id logic
-#   • MKIV-only RGB (WS2812/NeoPixel) support on GPIO27
-#   • Real-MAC discovery via identity broadcasts
-#   • Opportunistic unicast to known receiver MAC (less broadcast congestion)
-#   • Relay uses IRQ -> queue -> main loop (prevents IRQ bog-down)
-#   • Receiver drains RX queue aggressively (reduces missed packets)
-#   • Heartbeats use jitter to avoid synchronized bursts
-#   • ESP-NOW application-level PING/PONG verification:
-#       - Receiver suspects offline after timeout
-#       - Sends PING to sender real MAC (if known)
-#       - Sender replies with PONG
-#       - Receiver confirms offline only after retries
-#   • Receiver outputs compact serial CSV frames (Pi/Qt friendly):
-#       R,1
-#       O,<sid>,<0|1>
-#       S,<sid>,<motion>,<ramp>,<seq>
-#
-# BOARD SPLIT:
-#   MKIV detect: ONLY GPIO19 high while GPIO18=0 and GPIO14=0
-#   MKIV role: GPIO18/GPIO14 (2-bit) -> 0..3 roles
-#   MKIV ID: raw=(17<<3)|(5<<2)|(4<<1)|16; id=raw^0x0F
-#   MKIV LED: WS2812 on GPIO27
-#
-#   Legacy role: GPIO18/GPIO19 (2-bit) -> 0..3 roles
-#   Legacy ID: id=(4<<0)|(16<<1)|(17<<2)|(5<<3) (no XOR)
-#   Legacy LED: none
+# PATCHED:
+#   • Correct MKIV detection: GPIO19=1 AND GPIO18=0 AND GPIO14=0
+#   • Receiver serial output uses UART(0) write via serial_send()
+#     (drops lines on failure to avoid print() blocking/freezing)
+#   • FINAL_VMAC computed from TARGET_RECEIVER_ID
 # ------------------------------------------------------------
 
 import network
@@ -46,6 +24,12 @@ except Exception:
 
 
 # =========================================================
+# USER CONFIG
+# =========================================================
+TARGET_RECEIVER_ID = 1  # <-- set the receiver ID you expect (hex 0x01)
+
+
+# =========================================================
 # Helpers
 # =========================================================
 def _ticks_ms():
@@ -61,6 +45,40 @@ def _pad16(b: bytes) -> bytes:
 
 def _jitter_ms(max_ms=2000) -> int:
     return urandom.getrandbits(16) % max_ms
+
+
+# =========================================================
+# UART serial (PATCH: avoid print() in receiver hot path)
+# =========================================================
+_uart0 = None
+def serial_init():
+    global _uart0
+    try:
+        _uart0 = machine.UART(0, 115200)
+    except Exception:
+        _uart0 = None
+
+def serial_send(line: str) -> bool:
+    """
+    Best-effort serial send.
+    If host isn't draining, don't block the receiver loop forever.
+    """
+    if _uart0 is None:
+        # fallback to print (only if UART failed to init)
+        try:
+            print(line)
+            return True
+        except Exception:
+            return False
+
+    try:
+        # Minimal overhead; write bytes directly.
+        _uart0.write(line)
+        _uart0.write(b"\n")
+        return True
+    except Exception:
+        # Drop line on any error to avoid lockups
+        return False
 
 
 # =========================================================
@@ -92,15 +110,16 @@ except Exception:
 
 
 # =========================================================
-# MKIV detect + role decode
+# MKIV detect + role decode (PATCHED)
 # =========================================================
-PIN19 = machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_DOWN)  # MKIV flag pin (only high)
+PIN19 = machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_DOWN)  # MKIV flag pin
 PIN18 = machine.Pin(18, machine.Pin.IN, machine.Pin.PULL_DOWN)
 PIN14 = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
 time.sleep_ms(50)
 
-mkiv_flag = (PIN19.value() == 1)
+# PATCH: MKIV detect is ONLY when 19=1 and 18=0 and 14=0
+mkiv_flag = (PIN19.value() == 1 and PIN18.value() == 0 and PIN14.value() == 0)
 
 roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER", 3: "TELEMETRY"}
 
@@ -108,7 +127,7 @@ if mkiv_flag:
     # MKIV role uses GPIO18/GPIO14
     role_value = (PIN18.value() << 1) | PIN14.value()
 else:
-    # Legacy role uses GPIO18/GPIO19 (espnow-combined logic)
+    # Legacy role uses GPIO18/GPIO19
     role_value = (PIN18.value() << 1) | PIN19.value()
 
 DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
@@ -133,7 +152,7 @@ if mkiv_flag:
     )
     device_id = raw_id ^ 0x0F
 else:
-    # Legacy logic from espnow-combined.py:
+    # Legacy logic:
     # device_id = (GPIO4<<0)|(GPIO16<<1)|(GPIO17<<2)|(GPIO5<<3)
     P4  = machine.Pin(4,  machine.Pin.IN, machine.Pin.PULL_DOWN)
     P16 = machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN)
@@ -157,9 +176,10 @@ mac_prefix = {
 virtual_mac = "{}:{:02X}:{:02X}".format(mac_prefix.get(DEVICE_TYPE, "AC:DB:FF"), device_id, device_id)
 real_mac = ubinascii.hexlify(sta.config("mac"), ":").decode()
 
-FINAL_VMAC = "AC:DB:02:01:01"
+# PATCH: compute FINAL_VMAC from TARGET_RECEIVER_ID
+FINAL_VMAC = "AC:DB:02:{:02X}:{:02X}".format(TARGET_RECEIVER_ID, TARGET_RECEIVER_ID)
 
-print(f"\n[BOOT] MKIV={mkiv_flag} Role={DEVICE_TYPE} ID={device_id} Virtual={virtual_mac} Real={real_mac}\n")
+print(f"\n[BOOT] MKIV={mkiv_flag} Role={DEVICE_TYPE} ID={device_id} Virtual={virtual_mac} Real={real_mac} FINAL_VMAC={FINAL_VMAC}\n")
 
 
 # =========================================================
@@ -252,6 +272,7 @@ def run_sender():
         return 0
 
     def get_motion_state():
+        # keep your current meaning (you already fixed timers on Pi side)
         return 1 if SIM_HOME_PIN.value() == 0 else 2
 
     receiver_rmac = None
@@ -277,8 +298,15 @@ def run_sender():
 
     def send_to_receiver(msg_type: int, ramp_state: int, motion_state: int):
         nonlocal seq_counter
-        pkt = struct.pack(PACKET_FORMAT, dest_receiver_field, device_id, msg_type,
-                          ramp_state, motion_state, seq_counter)
+        pkt = struct.pack(
+            PACKET_FORMAT,
+            dest_receiver_field,
+            device_id,
+            msg_type,
+            ramp_state,
+            motion_state,
+            seq_counter
+        )
         seq_counter = (seq_counter + 1) & 0xFFFF
 
         dest = receiver_rmac if receiver_rmac else broadcast_mac
@@ -292,8 +320,15 @@ def run_sender():
         nonlocal seq_counter
         ramp_state = get_ramp_state()
         mot_state  = get_motion_state()
-        pkt = struct.pack(PACKET_FORMAT, dest_receiver_field, device_id, MSG_PONG,
-                          ramp_state, mot_state, seq_counter)
+        pkt = struct.pack(
+            PACKET_FORMAT,
+            dest_receiver_field,
+            device_id,
+            MSG_PONG,
+            ramp_state,
+            mot_state,
+            seq_counter
+        )
         seq_counter = (seq_counter + 1) & 0xFFFF
         try:
             try:
@@ -338,7 +373,7 @@ def run_sender():
                 except Exception:
                     pass
 
-    # --- Optional enhancement: fast boot announce ---
+    # Fast boot announce
     time.sleep_ms(_jitter_ms(400))
     broadcast_identity()
 
@@ -351,7 +386,6 @@ def run_sender():
     # Send HB + PONG immediately so receiver clears offline quickly
     send_to_receiver(MSG_HB,   get_ramp_state(), get_motion_state())
     send_to_receiver(MSG_PONG, get_ramp_state(), get_motion_state())
-    # ----------------------------------------------
 
     while True:
         now = _ticks_ms()
@@ -464,6 +498,7 @@ def run_relay():
 
     esp.irq(on_data_recv)
 
+    # keep this one print (relay console)
     print("[RELAY] Ready (queued IRQ forwarding)")
     led_set(*_role_color())
 
@@ -495,10 +530,8 @@ def run_relay():
 # RECEIVER (serial CSV output + ping/pong verify)
 # =========================================================
 def run_receiver():
-    # Serial protocol:
-    #   R,1
-    #   O,<sid>,<0|1>
-    #   S,<sid>,<motion>,<ramp>,<seq>
+    # PATCH: init UART serial sender
+    serial_init()
 
     EMIT_RECEIVER_ALIVE = True
     RECEIVER_ALIVE_MS = 5000
@@ -530,14 +563,15 @@ def run_receiver():
         except Exception:
             pass
 
+    # PATCH: use serial_send (no print in hot path)
     def emit_state(sid: int, motion: int, ramp: int, seq: int):
-        print("S,{},{},{},{}".format(sid, motion, ramp, seq))
+        serial_send("S,{},{},{},{}".format(sid, motion, ramp, seq))
 
     def emit_online(sid: int, online: int):
-        print("O,{},{}".format(sid, online))
+        serial_send("O,{},{}".format(sid, online))
 
     def emit_receiver_alive():
-        print("R,1")
+        serial_send("R,1")
 
     def send_ping(sid: int, sender_rmac: bytes):
         sender_vmac = "AC:DB:00:{:02X}:{:02X}".format(sid, sid)
@@ -642,7 +676,6 @@ def run_receiver():
                     rec["ramp"] = ramp_state
                     rec["motion"] = motion_state
 
-                    # Emit state only when changed OR on explicit DATA frames
                     if changed or msg_type == MSG_DATA:
                         emit_state(sid, motion_state, ramp_state, seq)
 
