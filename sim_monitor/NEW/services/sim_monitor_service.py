@@ -1,3 +1,25 @@
+#!/usr/bin/env python3
+"""
+Sim Monitor Service (Pi5)
+-------------------------
+Reads ESP32 Receiver serial output and writes to SQLite.
+
+Expected receiver frames (CSV):
+  R,1
+  O,<sid>,<0|1>
+  S,<sid>,<motion>,<ramp>,<seq>
+
+KEY IMPROVEMENTS:
+  • Receiver ONLINE if:
+      - serial port opens successfully (optional, enabled)
+      - AND/OR any serial activity is observed
+  • Receiver OFFLINE only if:
+      - no serial activity for RECEIVER_TIMEOUT seconds
+      - OR serial exceptions / disconnects
+  • Auto-reconnect loop on serial failures
+  • Robust: accepts O or 0 prefix for online frames (O vs zero)
+"""
+
 import time, re, sys, pathlib
 
 # Ensure project root is on sys.path
@@ -14,23 +36,37 @@ except ImportError:
 
 
 # -----------------------------
-# NEW CSV protocol from receiver
+# Receiver CSV protocol
 # -----------------------------
-RECV_RE = re.compile(r"^R,1$")
-ONLINE_RE = re.compile(r"^O,(\d+),(0|1)$")
-STATE_RE = re.compile(r"^S,(\d+),(\d+),(\d+),(\d+)$")  # sid,motion,ramp,seq
+RECV_RE   = re.compile(r"^R,1$")
+# Accept O or 0 (letter O vs zero) just in case
+ONLINE_RE = re.compile(r"^[O0],(\d+),(0|1)$")
+STATE_RE  = re.compile(r"^S,(\d+),(\d+),(\d+),(\d+)$")  # sid,motion,ramp,seq
 
+
+# -----------------------------
+# Config
+# -----------------------------
 BAUD = 115200
-PREFERRED_PORT = "/dev/ttyUSB0"   # change if needed
+PREFERRED_PORT = "/dev/ttyUSB0"   # set "" to force autoscan
 SERIAL_TIMEOUT = 1.0
 
-# If we see no valid frames for this many seconds, receiver is considered offline
+# Receiver considered offline if NO SERIAL ACTIVITY for this time (seconds)
 RECEIVER_TIMEOUT = 20
 
-# Sender offline based on DB last_update_ts
+# Sender considered offline if DB last_update_ts older than this (seconds)
 SENDER_TIMEOUT = 180
 
+# If True: port open => receiver online immediately (even if receiver doesn't print R,1)
+PORT_OPEN_COUNTS_AS_ONLINE = True
 
+# Auto-reconnect delay when serial fails
+RECONNECT_DELAY_SEC = 2.0
+
+
+# -----------------------------
+# DB helpers
+# -----------------------------
 def update_receiver_status(online: bool, *, ts: int | None = None):
     now = int(ts if ts is not None else time.time())
     conn = get_conn()
@@ -89,14 +125,14 @@ def handle_motion(sim_id: int, motion_state: int, *, ts: int | None = None):
 
     now = int(ts if ts is not None else time.time())
 
-    # Motion starts (In Operation)
+    # Motion starts
     if motion_state == 2 and not in_motion:
         cur.execute(
             "INSERT OR REPLACE INTO active_motion (sim_id, start_ts) VALUES (?, ?)",
             (sim_id, now)
         )
 
-    # Motion ends (anything other than 2)
+    # Motion ends
     if motion_state != 2 and in_motion:
         start = row[0]
         duration = now - start
@@ -126,6 +162,9 @@ def check_sender_timeouts():
     conn.close()
 
 
+# -----------------------------
+# Serial open helpers
+# -----------------------------
 def open_serial_port():
     if serial is None:
         raise RuntimeError("pyserial not installed")
@@ -133,109 +172,128 @@ def open_serial_port():
     # Try preferred port first
     if PREFERRED_PORT:
         try:
-            s = serial.Serial(PREFERRED_PORT, BAUD, timeout=SERIAL_TIMEOUT)
-            return s
+            return serial.Serial(PREFERRED_PORT, BAUD, timeout=SERIAL_TIMEOUT)
         except Exception:
             pass
 
     # Auto-scan ports
     for p in serial.tools.list_ports.comports():
         try:
-            s = serial.Serial(p.device, BAUD, timeout=SERIAL_TIMEOUT)
-            return s
+            return serial.Serial(p.device, BAUD, timeout=SERIAL_TIMEOUT)
         except Exception:
             continue
 
     raise RuntimeError("No serial ports available")
 
 
+# -----------------------------
+# Main loop with auto-reconnect
+# -----------------------------
 def run_service():
     init_db()
 
-    last_valid_frame_ts = 0
-    receiver_marked_online = False
-    last_timeout_check = 0
+    # Always start "offline" until we open port / see activity
+    update_receiver_status(False)
 
-    try:
-        ser = open_serial_port()
-        print(f"[SimMonitorService] Opened serial port {ser.port}")
+    while True:
+        ser = None
+        receiver_online = False
+        last_serial_activity_ts = 0
+        last_timeout_check = 0
 
-        # Clear junk at boot so first valid frame isn't delayed behind noise
         try:
-            ser.reset_input_buffer()
-        except Exception:
-            pass
-
-        # Don't mark online just for opening port — wait for a valid frame
-        update_receiver_status(False)
-    except Exception as e:
-        print(f"[SimMonitorService] Failed to open serial port: {e}")
-        update_receiver_status(False)
-        return
-
-    try:
-        while True:
-            line = ser.readline().decode(errors="ignore").strip()
+            ser = open_serial_port()
             now = int(time.time())
+            print(f"[SimMonitorService] Opened serial port {ser.port}")
 
-            # Periodic sender timeout cleanup
-            if now - last_timeout_check > 5:
-                check_sender_timeouts()
-                last_timeout_check = now
+            # Clear junk
+            try:
+                ser.reset_input_buffer()
+            except Exception:
+                pass
 
-            if not line:
-                # Receiver offline if no valid frame within RECEIVER_TIMEOUT
-                if receiver_marked_online and last_valid_frame_ts and (now - last_valid_frame_ts > RECEIVER_TIMEOUT):
-                    receiver_marked_online = False
-                    update_receiver_status(False, ts=now)
-                continue
+            # Port-open => online (optional)
+            if PORT_OPEN_COUNTS_AS_ONLINE:
+                receiver_online = True
+                last_serial_activity_ts = now
+                update_receiver_status(True, ts=now)
 
-            # Parse valid frames
-            mR = RECV_RE.match(line)
-            mO = ONLINE_RE.match(line)
-            mS = STATE_RE.match(line)
+            while True:
+                raw = ser.readline()
+                now = int(time.time())
 
-            if not (mR or mO or mS):
-                # Ignore non-protocol noise
-                continue
+                # Periodic sender timeout cleanup
+                if now - last_timeout_check > 5:
+                    check_sender_timeouts()
+                    last_timeout_check = now
 
-            # Any valid frame => receiver alive
-            last_valid_frame_ts = now
-            if not receiver_marked_online:
-                receiver_marked_online = True
-            update_receiver_status(True, ts=now)
+                if not raw:
+                    # No bytes this cycle; offline only if NO serial activity for long enough
+                    if receiver_online and last_serial_activity_ts and (now - last_serial_activity_ts > RECEIVER_TIMEOUT):
+                        receiver_online = False
+                        update_receiver_status(False, ts=now)
+                    continue
 
-            # R,1 (keepalive) - nothing else to do
-            if mR:
-                continue
+                # We saw bytes (any activity)
+                last_serial_activity_ts = now
 
-            # O,sid,0|1
-            if mO:
-                sid = int(mO.group(1))
-                online = int(mO.group(2))
-                set_sender_online_flag(sid, bool(online), ts=now)
-                continue
+                # Any activity can revive online state
+                if not receiver_online:
+                    receiver_online = True
+                update_receiver_status(True, ts=now)
 
-            # S,sid,motion,ramp,seq
-            if mS:
-                sid = int(mS.group(1))
-                motion = int(mS.group(2))
-                ramp = int(mS.group(3))
-                # seq = int(mS.group(4))
+                # Decode line
+                line = raw.decode(errors="ignore").strip()
+                if not line:
+                    continue
 
-                update_sender(sid, motion, ramp, ts=now)
-                handle_motion(sid, motion, ts=now)
+                # Parse frames
+                mR = RECV_RE.match(line)
+                mO = ONLINE_RE.match(line)
+                mS = STATE_RE.match(line)
 
-    except KeyboardInterrupt:
-        print("[SimMonitorService] Stopped by user")
-    except Exception as e:
-        print(f"[SimMonitorService] Error in loop: {e}")
-    finally:
-        try:
-            ser.close()
-        except Exception:
-            pass
-        update_receiver_status(False)
+                if not (mR or mO or mS):
+                    # noise, but counts as activity already
+                    continue
+
+                if mR:
+                    # keepalive only
+                    continue
+
+                if mO:
+                    sid = int(mO.group(1))
+                    online = int(mO.group(2))
+                    set_sender_online_flag(sid, bool(online), ts=now)
+                    continue
+
+                if mS:
+                    sid = int(mS.group(1))
+                    motion = int(mS.group(2))
+                    ramp = int(mS.group(3))
+                    # seq = int(mS.group(4))  # available if you want logging later
+
+                    update_sender(sid, motion, ramp, ts=now)
+                    handle_motion(sid, motion, ts=now)
+
+        except KeyboardInterrupt:
+            print("[SimMonitorService] Stopped by user")
+            break
+
+        except Exception as e:
+            # Serial failure => receiver offline + reconnect
+            now = int(time.time())
+            print(f"[SimMonitorService] Serial error: {e}")
+            update_receiver_status(False, ts=now)
+
+        finally:
+            try:
+                if ser:
+                    ser.close()
+            except Exception:
+                pass
+
+        # Reconnect delay
+        time.sleep(RECONNECT_DELAY_SEC)
 
 
 if __name__ == "__main__":
