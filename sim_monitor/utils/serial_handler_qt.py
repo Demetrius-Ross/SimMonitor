@@ -2,12 +2,22 @@
 """
 Qt-friendly Serial Monitor for the Sim-Monitor GUI
 --------------------------------------------------
-• Real serial reading in LIVE mode
-• Mock serial input in DEBUG mode (auto-simulated disconnects)
-• Fake DATA / HEARTBEAT injection (for Debug Control Panel)
-• Accurate receiver ESP32 online/offline detection
-• Per-sender offline detection (heartbeat timeout)
-• Thread-safe Qt signal dispatching
+LIVE mode:
+• Reads CSV frames from ESP32 receiver over USB serial
+
+DEBUG mode:
+• Mock serial input
+• Debug injection: fake sender frames + forced sender disconnect
+
+Receiver Online Logic (IMPROVED):
+• Receiver is considered ONLINE if:
+  - Any valid frame is received (R/O/S), OR
+  - (optional) port-open counts as online
+• Receiver is OFFLINE if no valid frame received for RECEIVER_TIMEOUT seconds
+
+Sender Online Logic:
+• Sender ONLINE on valid O/S frames
+• Sender OFFLINE if no valid activity for SENDER_TIMEOUT seconds
 """
 
 import logging, threading, time, re
@@ -25,8 +35,7 @@ except ImportError:
 class DebugInjection:
     """
     Allows:
-    • Fake DATA injection
-    • Fake HEARTBEAT injection
+    • Fake sender frames injection
     • Forcing sender disconnect
     """
 
@@ -37,25 +46,23 @@ class DebugInjection:
     def toggle_disconnect(self, sid, enabled):
         self.disconnect_flags[sid] = enabled
 
-    def inject_fake_data(self, sid):
-        line = (
-            f"[DATA] Received from Sender ID {sid}: "
-            f"RampState=2, MotionState=1, Seq=9999\n"
-        )
-        self._inject_buffer.append(line.encode())
+    def inject_sender_online(self, sid):
+        self._inject_buffer.append(f"O,{sid},1\n".encode())
 
-    def inject_fake_heartbeat(self, sid):
-        line = (
-            f"[HEARTBEAT] Received from Sender ID {sid}: "
-            f"RampState=1, MotionState=2, Seq=10000\n"
-        )
-        self._inject_buffer.append(line.encode())
+    def inject_sender_offline(self, sid):
+        self._inject_buffer.append(f"O,{sid},0\n".encode())
+
+    def inject_state(self, sid, motion=2, ramp=1, seq=9999):
+        self._inject_buffer.append(f"S,{sid},{motion},{ramp},{seq}\n".encode())
+
+    def inject_receiver_alive(self):
+        self._inject_buffer.append(b"R,1\n")
 
     def reset_to_normal(self):
         self.disconnect_flags.clear()
+        self._inject_buffer.clear()
 
 
-# Global debug object
 serial_debug = DebugInjection()
 
 
@@ -63,22 +70,35 @@ serial_debug = DebugInjection()
 #   CONFIG
 # ===============================================================
 DEBUG_MODE = False
-SERIAL_PORT = ""
+SERIAL_PORT = ""     # set to "COMx" to force, else auto-scan
 BAUD_RATE = 115200
 READ_TIMEOUT = 1.0
+
+# Receiver considered offline if we don't see any valid frame in this time
+RECEIVER_TIMEOUT = 20.0
+
+# Sender considered offline if we don't see any activity for this time
+SENDER_TIMEOUT = 180.0
+
+# Optional: if True, "port opened successfully" marks receiver online even with no traffic
+PORT_OPEN_COUNTS_AS_ONLINE = True
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-data_regex = re.compile(
-    r'^\[DATA\]\s+Received from Sender ID\s+(\d+):\s+RampState=(\d+),'
-    r'\s+MotionState=(\d+),\s+Seq=(\d+)$'
-)
 
-heartbeat_regex = re.compile(
-    r'^\[HEARTBEAT\]\s+Received from Sender ID\s+(\d+):\s+RampState=(\d+),'
-    r'\s+MotionState=(\d+),\s+Seq=(\d+)$'
-)
+# ===============================================================
+#   CSV FRAME REGEX
+# ===============================================================
+# R,1
+receiver_regex = re.compile(r"^R,1$")
+
+# O,<sid>,<0|1>
+online_regex = re.compile(r"^O,(\d+),(0|1)$")
+
+# S,<sid>,<motion>,<ramp>,<seq>
+state_regex = re.compile(r"^S,(\d+),(\d+),(\d+),(\d+)$")
 
 
 # ===============================================================
@@ -101,33 +121,27 @@ def stop_serial_thread():
 def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn, receiver_status_fn):
     """
     sim_cards: dict of {sim_id : SimulatorCard}
-    update_sim_fn: MainWindow.update_simulator_state
-    mark_offline_fn: MainWindow.set_simulator_offline
-    receiver_status_fn: MainWindow.set_receiver_status
+    update_sim_fn: MainWindow.update_simulator_state(sim_id, motion, ramp)
+    mark_offline_fn: MainWindow.set_simulator_offline(sim_id, is_offline)
+    receiver_status_fn: MainWindow.set_receiver_status(is_online)
     """
+
     global _RUN_FLAG
     _RUN_FLAG = True
 
     # ===========================================================
-    #   DEBUG MODE: simulated serial input
+    #   DEBUG MODE SERIAL
     # ===========================================================
     class MockSerial:
-        """
-        Simulated ESP32 receiver behavior:
-        • Sends sample frames for 10 seconds
-        • Then completely silent for 12 seconds
-        • Repeats forever
-        • Works with Debug Control Panel injection
-        """
-
         def __init__(self):
-            self.phase = "sending"
-            self.last_phase_change = time.time()
+            self.last_emit = time.time()
             self.idx = 0
-
             self.frames = [
-                b"[DATA] Received from Sender ID 1: RampState=2, MotionState=2, Seq=10\n",
-                b"[HEARTBEAT] Received from Sender ID 2: RampState=1, MotionState=1, Seq=11\n",
+                b"R,1\n",
+                b"O,1,1\n",
+                b"S,1,2,1,10\n",
+                b"O,2,1\n",
+                b"S,2,1,2,11\n",
             ]
 
         @property
@@ -138,36 +152,14 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn, rece
             pass
 
         def readline(self):
-
-            # FIRST: process injected frames
+            # injected frames first
             if serial_debug._inject_buffer:
                 return serial_debug._inject_buffer.pop(0)
 
-            now = time.time()
-
-            # Active sending
-            if self.phase == "sending":
-                if now - self.last_phase_change < 10:
-                    time.sleep(1)
-                    out = self.frames[self.idx % len(self.frames)]
-                    self.idx += 1
-                    return out
-                else:
-                    self.phase = "silent"
-                    self.last_phase_change = now
-                    return b""
-
-            # Silent window
-            if self.phase == "silent":
-                if now - self.last_phase_change < 12:
-                    time.sleep(1)
-                    return b""
-                else:
-                    self.phase = "sending"
-                    self.last_phase_change = now
-                    return b""
-
-            return b""
+            time.sleep(0.6)
+            out = self.frames[self.idx % len(self.frames)]
+            self.idx += 1
+            return out
 
     # ===========================================================
     #   SERIAL PORT OPEN
@@ -178,13 +170,13 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn, rece
             return MockSerial()
 
         # Try preferred port first
-        try:
-            if preferred:
+        if preferred:
+            try:
                 s = serial.Serial(preferred, BAUD_RATE, timeout=READ_TIMEOUT)
                 logger.info(f"Opened {preferred}")
                 return s
-        except Exception as e:
-            logger.warning(f"Cannot open preferred port {preferred}: {e}")
+            except Exception as e:
+                logger.warning(f"Cannot open preferred port {preferred}: {e}")
 
         # Auto-scan all ports
         logger.info("Scanning serial ports…")
@@ -193,7 +185,7 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn, rece
                 s = serial.Serial(port.device, BAUD_RATE, timeout=READ_TIMEOUT)
                 logger.info(f"Opened {port.device}")
                 return s
-            except:
+            except Exception:
                 continue
 
         raise IOError("No serial ports found")
@@ -203,110 +195,133 @@ def start_serial_thread(sim_cards: dict, *, update_sim_fn, mark_offline_fn, rece
     # ===========================================================
     def reader_thread():
         ser = None
-        try:
-            # Attempt to open port
-            ser = open_port(SERIAL_PORT)
 
-            # Receiver ONLINE when port opens
+        # Sender last-seen timestamps
+        last_seen_sender = {}
+
+        # Receiver last-seen (any valid frame)
+        last_seen_receiver = 0.0
+        receiver_online = False
+
+        def set_receiver_online(flag: bool):
+            nonlocal receiver_online
+            if receiver_online == flag:
+                return
+            receiver_online = flag
             QMetaObject.invokeMethod(
                 receiver_status_fn.__self__,
                 "set_receiver_status",
                 Qt.QueuedConnection,
-                Q_ARG(bool, True)
+                Q_ARG(bool, flag)
             )
 
-            # Sender last-seen timestamps
-            last_seen = {}
-            SENDER_TIMEOUT = 180
+        def mark_sender_offline(sid: int, is_offline: bool):
+            QMetaObject.invokeMethod(
+                mark_offline_fn.__self__,
+                "set_simulator_offline",
+                Qt.QueuedConnection,
+                Q_ARG(int, sid),
+                Q_ARG(bool, is_offline)
+            )
+
+        def update_sender_state(sid: int, motion: int, ramp: int):
+            QMetaObject.invokeMethod(
+                update_sim_fn.__self__,
+                "update_simulator_state",
+                Qt.QueuedConnection,
+                Q_ARG(int, sid),
+                Q_ARG(int, motion),
+                Q_ARG(int, ramp)
+            )
+
+        try:
+            ser = open_port(SERIAL_PORT)
+
+            # If you want port-open to count, set receiver online now
+            if PORT_OPEN_COUNTS_AS_ONLINE:
+                set_receiver_online(True)
+                last_seen_receiver = time.time()
 
             while _RUN_FLAG:
-
-                # Read one line
                 raw = ser.readline().decode(errors="replace").strip()
 
-                # If port is open, receiver is online.
-                QMetaObject.invokeMethod(
-                    receiver_status_fn.__self__,
-                    "set_receiver_status",
-                    Qt.QueuedConnection,
-                    Q_ARG(bool, True)
-                )
-
-                if not raw:
-                    continue  # silent waiting, still online
-
-                m = data_regex.match(raw) or heartbeat_regex.match(raw)
-                if not m:
-                    continue
-
-                sid = int(m.group(1))
-                ramp = int(m.group(2))
-                mot = int(m.group(3))
-
-                # Forced disconnect via Debug Panel
-                if serial_debug.disconnect_flags.get(sid, False):
-                    continue
-
-                # Update last-seen timestamp
-                last_seen[sid] = time.time()
-
-                # Mark sender ONLINE
-                QMetaObject.invokeMethod(
-                    mark_offline_fn.__self__,
-                    "set_simulator_offline",
-                    Qt.QueuedConnection,
-                    Q_ARG(int, sid),
-                    Q_ARG(bool, False)
-                )
-
-                # Update sender state
-                QMetaObject.invokeMethod(
-                    update_sim_fn.__self__,
-                    "update_simulator_state",
-                    Qt.QueuedConnection,
-                    Q_ARG(int, sid),
-                    Q_ARG(int, mot),
-                    Q_ARG(int, ramp)
-                )
-
-                # Check sender timeouts
                 now = time.time()
-                for sim_id in sim_cards:
-                    last = last_seen.get(sim_id, 0)
-                    if now - last > SENDER_TIMEOUT:
-                        QMetaObject.invokeMethod(
-                            mark_offline_fn.__self__,
-                            "set_simulator_offline",
-                            Qt.QueuedConnection,
-                            Q_ARG(int, sim_id),
-                            Q_ARG(bool, True)
-                        )
+
+                # If silent, still enforce receiver timeout based on last valid frame
+                if not raw:
+                    if receiver_online and last_seen_receiver and (now - last_seen_receiver > RECEIVER_TIMEOUT):
+                        set_receiver_online(False)
+
+                    # sender timeout check even during silence
+                    for sim_id in sim_cards:
+                        last = last_seen_sender.get(sim_id, 0)
+                        if last and (now - last > SENDER_TIMEOUT):
+                            mark_sender_offline(sim_id, True)
+
+                    continue
+
+                # --- Parse frames ---
+                # Any valid frame => receiver is online
+                mR = receiver_regex.match(raw)
+                mO = online_regex.match(raw)
+                mS = state_regex.match(raw)
+
+                if not (mR or mO or mS):
+                    # not valid => ignore (don’t affect receiver online state)
+                    continue
+
+                # Any valid frame counts as receiver alive
+                last_seen_receiver = now
+                set_receiver_online(True)
+
+                # Receiver heartbeat frame
+                if mR:
+                    continue
+
+                # Sender online/offline frame
+                if mO:
+                    sid = int(mO.group(1))
+                    online = int(mO.group(2))
+
+                    if serial_debug.disconnect_flags.get(sid, False):
+                        continue
+
+                    if online == 1:
+                        last_seen_sender[sid] = now
+                        mark_sender_offline(sid, False)
+                    else:
+                        mark_sender_offline(sid, True)
+                    continue
+
+                # Sender state frame
+                if mS:
+                    sid = int(mS.group(1))
+                    motion = int(mS.group(2))
+                    ramp = int(mS.group(3))
+                    # seq = int(mS.group(4))  # available if you want to display/log
+
+                    if serial_debug.disconnect_flags.get(sid, False):
+                        continue
+
+                    last_seen_sender[sid] = now
+                    mark_sender_offline(sid, False)
+                    update_sender_state(sid, motion, ramp)
+
+                    # After processing state, run sender timeouts
+                    for sim_id in sim_cards:
+                        last = last_seen_sender.get(sim_id, 0)
+                        if last and (now - last > SENDER_TIMEOUT):
+                            mark_sender_offline(sim_id, True)
 
         except Exception as exc:
             logger.error(f"Serial worker error: {exc}")
-
-            # Receiver OFFLINE on serial failure
-            QMetaObject.invokeMethod(
-                receiver_status_fn.__self__,
-                "set_receiver_status",
-                Qt.QueuedConnection,
-                Q_ARG(bool, False)
-            )
+            set_receiver_online(False)
 
         finally:
             if ser and hasattr(ser, "is_open") and ser.is_open:
                 ser.close()
                 logger.info("Serial port closed.")
 
-            # Final offline state
-            QMetaObject.invokeMethod(
-                receiver_status_fn.__self__,
-                "set_receiver_status",
-                Qt.QueuedConnection,
-                Q_ARG(bool, False)
-            )
+            set_receiver_online(False)
 
-    # ===========================================================
-    #   START THREAD
-    # ===========================================================
     threading.Thread(target=reader_thread, daemon=True).start()
