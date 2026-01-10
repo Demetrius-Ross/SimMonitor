@@ -81,7 +81,7 @@ RECEIVER_TIMEOUT = 20.0
 SENDER_TIMEOUT = 180.0
 
 # Optional: if True, "port opened successfully" marks receiver online even with no traffic
-PORT_OPEN_COUNTS_AS_ONLINE = False
+PORT_OPEN_COUNTS_AS_ONLINE = True
 
 
 logger = logging.getLogger(__name__)
