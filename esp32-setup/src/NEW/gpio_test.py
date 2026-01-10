@@ -54,13 +54,6 @@ else:
 
 DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
 
-def stable_read(pin, samples=15, delay_ms=2):
-    s = 0
-    for _ in range(samples):
-        s += pin.value()
-        time.sleep_ms(delay_ms)
-    return 1 if s > (samples // 2) else 0
-    
 
 # =========================================================
 # Hex switch decode (MKIV vs Legacy)
@@ -73,14 +66,12 @@ if mkiv_flag:
     C = machine.Pin(4,  machine.Pin.IN, machine.Pin.PULL_DOWN)
     D = machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
-    time.sleep_ms(200)  # give strapping pins + switch network time to settle
-
-    a = stable_read(A)
-    b = stable_read(B)
-    c = stable_read(C)
-    d = stable_read(D)
-
-    raw_id = (a << 3) | (b << 2) | (c << 1) | d
+    raw_id = (
+        (A.value() << 3) |
+        (B.value() << 2) |
+        (D.value() << 1) |
+        C.value()
+    )
 
     device_id = raw_id ^ 0x0F
     id_logic = "MKIV: raw=(17<<3)|(5<<2)|(4<<1)|16 ; id=raw^0x0F"
