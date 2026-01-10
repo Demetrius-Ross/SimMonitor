@@ -551,7 +551,7 @@ def run_receiver():
     EMIT_RECEIVER_ALIVE = True
     RECEIVER_ALIVE_MS = 5000
 
-    HEARTBEAT_TIMEOUT_MS = 60000
+    HEARTBEAT_TIMEOUT_MS = 90000
     PING_WAIT_MS         = 800
     PING_RETRIES         = 2
 
