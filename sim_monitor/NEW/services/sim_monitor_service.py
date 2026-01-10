@@ -12,68 +12,43 @@ try:
 except ImportError:
     serial = None
 
-# New ESP32 CSV frames:
+# ============================================================
+# New ESP32 receiver CSV frames:
 #   R,1
 #   O,<sid>,<0|1>
 #   S,<sid>,<motion>,<ramp>,<seq>
+# ============================================================
 R_RE = re.compile(r"^R,1$")
 O_RE = re.compile(r"^O,(\d+),(0|1)$")
 S_RE = re.compile(r"^S,(\d+),(\d+),(\d+),(\d+)$")
 
 # Timeouts
-SENDER_TIMEOUT = 180         # seconds before marking sender offline
-RECEIVER_TIMEOUT = 20        # seconds of silence before receiver offline
+SENDER_TIMEOUT   = 180    # seconds before marking sender offline
+RECEIVER_TIMEOUT = 20     # seconds of no valid frames => receiver offline
 
 BAUD = 115200
-PREFERRED_PORT = "/dev/ttyUSB0"   # or "" to autoscan
+PREFERRED_PORT = "/dev/ttyUSB0"  # set "" to auto-scan
 
 
+# ============================================================
+# DB helpers (MATCH YOUR SCHEMA EXACTLY)
+# ============================================================
 def update_receiver_status(online: bool):
     conn = get_conn()
     cur = conn.cursor()
-    # NOTE: your GUI refresh_from_db reads only receiver_online, but keeping last_seen is ok if your schema has it
-    try:
-        cur.execute(
-            "UPDATE system_status SET receiver_online=?, last_seen=? WHERE id=1",
-            (1 if online else 0, int(time.time()))
-        )
-    except Exception:
-        # fallback if your schema doesn't have last_seen
-        cur.execute(
-            "UPDATE system_status SET receiver_online=? WHERE id=1",
-            (1 if online else 0,)
-        )
+    cur.execute(
+        "UPDATE system_status SET receiver_online=?, last_seen=? WHERE id=1",
+        (1 if online else 0, int(time.time()))
+    )
     conn.commit()
     conn.close()
 
 
-def touch_sim_row(cur, sim_id: int, now: int):
-    # ensure simulator exists
+def touch_sim(cur, sim_id: int, now_ts: int):
     cur.execute("""
         INSERT OR IGNORE INTO simulators (sim_id, motion_state, ramp_state, last_update_ts, online)
         VALUES (?, 0, 0, ?, 0)
-    """, (sim_id, now))
-
-
-def update_sender_state(sim_id: int, motion: int, ramp: int):
-    """
-    Writes current state + online=1.
-    """
-    now = int(time.time())
-    conn = get_conn()
-    cur = conn.cursor()
-
-    touch_sim_row(cur, sim_id, now)
-
-    # update current state
-    cur.execute("""
-        UPDATE simulators
-        SET motion_state=?, ramp_state=?, last_update_ts=?, online=1
-        WHERE sim_id=?
-    """, (motion, ramp, now, sim_id))
-
-    conn.commit()
-    conn.close()
+    """, (sim_id, now_ts))
 
 
 def set_sender_online(sim_id: int, online: bool):
@@ -81,7 +56,7 @@ def set_sender_online(sim_id: int, online: bool):
     conn = get_conn()
     cur = conn.cursor()
 
-    touch_sim_row(cur, sim_id, now)
+    touch_sim(cur, sim_id, now)
 
     cur.execute("""
         UPDATE simulators
@@ -93,9 +68,29 @@ def set_sender_online(sim_id: int, online: bool):
     conn.close()
 
 
+def update_sender_state(sim_id: int, motion: int, ramp: int):
+    """
+    Update simulators row (online=1) + last_update_ts.
+    """
+    now = int(time.time())
+    conn = get_conn()
+    cur = conn.cursor()
+
+    touch_sim(cur, sim_id, now)
+
+    cur.execute("""
+        UPDATE simulators
+        SET motion_state=?, ramp_state=?, last_update_ts=?, online=1
+        WHERE sim_id=?
+    """, (motion, ramp, now, sim_id))
+
+    conn.commit()
+    conn.close()
+
+
 def handle_motion(sim_id: int, motion_state: int):
     """
-    Correct convention:
+    Convention used by our updated system:
       motion_state == 1  => IN MOTION
       motion_state != 1  => NOT moving (home)
     """
@@ -117,11 +112,13 @@ def handle_motion(sim_id: int, motion_state: int):
     # Motion ends
     if motion_state != 1 and in_motion:
         start = int(row[0])
-        duration = max(0, now - start)
+        dur = max(0, now - start)
+
         cur.execute("""
             INSERT INTO motion_sessions (sim_id, start_ts, end_ts, duration_sec)
             VALUES (?, ?, ?, ?)
-        """, (sim_id, start, now, duration))
+        """, (sim_id, start, now, dur))
+
         cur.execute("DELETE FROM active_motion WHERE sim_id=?", (sim_id,))
 
     conn.commit()
@@ -129,32 +126,43 @@ def handle_motion(sim_id: int, motion_state: int):
 
 
 def check_sender_timeouts():
+    """
+    Marks senders offline if they haven't updated recently.
+    Also closes any active motion session to avoid "stuck in motion".
+    """
     now = int(time.time())
     conn = get_conn()
     cur = conn.cursor()
 
     cur.execute("SELECT sim_id, last_update_ts, online FROM simulators")
-    for sim_id, last_ts, online in cur.fetchall():
+    rows = cur.fetchall()
+
+    for sim_id, last_ts, online in rows:
         if last_ts is None:
             continue
-        if online and (now - int(last_ts) > SENDER_TIMEOUT):
+
+        if int(online) == 1 and (now - int(last_ts) > SENDER_TIMEOUT):
             cur.execute("UPDATE simulators SET online=0 WHERE sim_id=?", (sim_id,))
-            # also end any active motion to avoid “stuck in motion”
+
+            # If it was in active motion, close it out
             cur.execute("SELECT start_ts FROM active_motion WHERE sim_id=?", (sim_id,))
-            row = cur.fetchone()
-            if row:
-                start = int(row[0])
-                duration = max(0, now - start)
+            am = cur.fetchone()
+            if am:
+                start = int(am[0])
+                dur = max(0, now - start)
                 cur.execute("""
                     INSERT INTO motion_sessions (sim_id, start_ts, end_ts, duration_sec)
                     VALUES (?, ?, ?, ?)
-                """, (sim_id, start, now, duration))
+                """, (sim_id, start, now, dur))
                 cur.execute("DELETE FROM active_motion WHERE sim_id=?", (sim_id,))
 
     conn.commit()
     conn.close()
 
 
+# ============================================================
+# Serial open
+# ============================================================
 def open_serial_port():
     if serial is None:
         raise RuntimeError("pyserial not installed")
@@ -174,6 +182,9 @@ def open_serial_port():
     raise RuntimeError("No serial ports available")
 
 
+# ============================================================
+# Main loop
+# ============================================================
 def run_service():
     init_db()
 
@@ -185,7 +196,6 @@ def run_service():
         update_receiver_status(False)
         return
 
-    # receiver online only after valid frame (or keep true on open if you want)
     receiver_last_seen = 0.0
     update_receiver_status(False)
 
@@ -197,41 +207,37 @@ def run_service():
             now = time.time()
 
             if line:
-                # Parse new CSV protocol
-                if R_RE.match(line):
+                mR = R_RE.match(line)
+                mO = O_RE.match(line)
+                mS = S_RE.match(line)
+
+                if mR or mO or mS:
                     receiver_last_seen = now
                     update_receiver_status(True)
 
-                else:
-                    mO = O_RE.match(line)
-                    if mO:
-                        receiver_last_seen = now
-                        update_receiver_status(True)
+                if mR:
+                    pass
 
-                        sim_id = int(mO.group(1))
-                        online = int(mO.group(2))
-                        set_sender_online(sim_id, bool(online))
+                elif mO:
+                    sim_id = int(mO.group(1))
+                    online = int(mO.group(2))
+                    set_sender_online(sim_id, bool(online))
 
-                    else:
-                        mS = S_RE.match(line)
-                        if mS:
-                            receiver_last_seen = now
-                            update_receiver_status(True)
+                elif mS:
+                    sim_id = int(mS.group(1))
+                    motion = int(mS.group(2))
+                    ramp = int(mS.group(3))
+                    # seq = int(mS.group(4))  # available if you want logging
 
-                            sim_id = int(mS.group(1))
-                            motion = int(mS.group(2))
-                            ramp = int(mS.group(3))
-                            # seq = int(mS.group(4))  # available if you want logging
+                    update_sender_state(sim_id, motion, ramp)
+                    handle_motion(sim_id, motion)
 
-                            update_sender_state(sim_id, motion, ramp)
-                            handle_motion(sim_id, motion)
-
-            # Receiver silence timeout
+            # receiver silence timeout
             if receiver_last_seen and (now - receiver_last_seen > RECEIVER_TIMEOUT):
                 update_receiver_status(False)
                 receiver_last_seen = 0.0
 
-            # Periodic sender timeout checks
+            # periodic sender timeout checks
             if now - last_timeout_check > 5:
                 check_sender_timeouts()
                 last_timeout_check = now
