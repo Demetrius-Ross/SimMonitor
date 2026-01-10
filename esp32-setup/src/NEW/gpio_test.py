@@ -80,12 +80,7 @@ if mkiv_flag:
     c = stable_read(C)
     d = stable_read(D)
 
-    raw_id = (
-        (a.value() << 3) |
-        (b.value() << 2) |
-        (c.value() << 1) |
-        d.value()
-    )
+    raw_id = (a << 3) | (b << 2) | (c << 1) | d
 
     device_id = raw_id ^ 0x0F
     id_logic = "MKIV: raw=(17<<3)|(5<<2)|(4<<1)|16 ; id=raw^0x0F"
