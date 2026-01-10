@@ -125,7 +125,12 @@ if mkiv_flag:
     C = machine.Pin(4,  machine.Pin.IN, machine.Pin.PULL_DOWN)
     D = machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
-    raw_id = (A.value() << 3) | (B.value() << 2) | (C.value() << 1) | D.value()
+    raw_id = (
+        (B.value() << 3) |
+        (A.value() << 2) |
+        (D.value() << 1) |
+        C.value()
+    )
     device_id = raw_id ^ 0x0F
 else:
     # Legacy logic from espnow-combined.py:
