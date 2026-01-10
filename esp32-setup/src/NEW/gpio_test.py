@@ -66,7 +66,13 @@ if mkiv_flag:
     C = machine.Pin(4,  machine.Pin.IN, machine.Pin.PULL_DOWN)
     D = machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
-    raw_id = (A.value() << 3) | (B.value() << 2) | (C.value() << 1) | D.value()
+    raw_id = (
+        (A.value() << 3) |
+        (B.value() << 2) |
+        (C.value() << 1) |
+        D.value()
+    )
+
     device_id = raw_id ^ 0x0F
     id_logic = "MKIV: raw=(17<<3)|(5<<2)|(4<<1)|16 ; id=raw^0x0F"
 else:
