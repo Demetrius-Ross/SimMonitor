@@ -67,8 +67,8 @@ if mkiv_flag:
     D = machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
     raw_id = (
-        (A.value() << 3) |
-        (B.value() << 2) |
+        (B.value() << 3) |
+        (A.value() << 2) |
         (D.value() << 1) |
         C.value()
     )
