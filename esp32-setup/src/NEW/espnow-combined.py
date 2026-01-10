@@ -118,8 +118,8 @@ PIN14 = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
 time.sleep_ms(50)
 
-# PATCH: MKIV detect is ONLY when 19=1 and 18=0 and 14=0
-mkiv_flag = (PIN19.value() == 1 and PIN18.value() == 0 and PIN14.value() == 0)
+# PATCH: MKIV detect is ONLY when 19=1 
+mkiv_flag = (PIN19.value() == 1)
 
 roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER", 3: "TELEMETRY"}
 
