@@ -514,6 +514,10 @@ def run_receiver():
 
     IDENTITY_BASE_MS  = 30000
 
+    # NEW: keep DB alive even if state never changes by emitting
+    # a throttled "online" keepalive whenever we receive MSG_HB.
+    HB_SERIAL_KEEPALIVE_MS = 10000  # emit O,sid,1 at most once per 10s per sender
+
     now = _ticks_ms()
     next_identity = now + 1000 + _jitter_ms(800)
     next_alive = now + RECEIVER_ALIVE_MS
@@ -635,6 +639,7 @@ def run_receiver():
                             "motion": motion_state,
                             "offline": False,
                             "supports_pong": False,  # OPTION A default
+                            "last_o_emit": 0,         # NEW: throttle O keepalive prints
                         }
                         senders[sid] = rec
                         emit_online(sid, 1)
@@ -644,16 +649,26 @@ def run_receiver():
                     if msg_type == MSG_PONG and not rec["supports_pong"]:
                         rec["supports_pong"] = True
 
+                    # Update last seen/seq
                     rec["last_seen"] = now
                     rec["last_seq"] = seq
 
+                    # If previously offline -> bring online immediately
                     if rec["offline"]:
                         rec["offline"] = False
                         emit_online(sid, 1)
+                        rec["last_o_emit"] = now  # avoid immediate double emit
 
+                    # Track state changes
                     changed = (ramp_state != rec["ramp"]) or (motion_state != rec["motion"])
                     rec["ramp"] = ramp_state
                     rec["motion"] = motion_state
+
+                    # NEW: heartbeat keepalive to serial (so Pi DB timestamps refresh)
+                    if msg_type == MSG_HB:
+                        if _ticks_diff(now, rec["last_o_emit"]) > HB_SERIAL_KEEPALIVE_MS:
+                            emit_online(sid, 1)
+                            rec["last_o_emit"] = now
 
                     # Emit state only when changed OR on explicit DATA frames
                     if changed or msg_type == MSG_DATA:
@@ -675,13 +690,7 @@ def run_receiver():
             if _ticks_diff(now, rec["last_seen"]) <= timeout_ms:
                 continue
 
-            # If we KNOW it supports pong => ping/pong verify before offline
             rmac = sender_mac_by_id.get(sid)
-
-            # Capability probe path:
-            # - If we DON'T know it supports pong yet, but we DO know its real MAC,
-            #   do a ping probe before assuming legacy/offline.
-            # - If pong returns -> supports_pong=True and keep online.
             do_probe = (rmac is not None)
 
             if not do_probe:
@@ -714,8 +723,6 @@ def run_receiver():
                     break
 
             if not alive:
-                # If it was unknown capability, we keep it as legacy (supports_pong False)
-                # but we already exceeded legacy timeout too if we're here.
                 rec["offline"] = True
                 emit_online(sid, 0)
                 led_pulse(25, 0, 0, 120)
