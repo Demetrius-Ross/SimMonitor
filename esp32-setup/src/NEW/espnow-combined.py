@@ -113,13 +113,18 @@ DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
 # =========================================================
 if mkiv_flag:
     # MKIV current hex logic:
-    # raw=(GPIO17<<3)|(GPIO5<<2)|(GPIO4<<1)|GPIO16; id=raw^0x0F
+    # A=17(bit3), B=5(bit2), C=4(bit1), D=16(bit0), then invert
     A = machine.Pin(17, machine.Pin.IN, machine.Pin.PULL_DOWN)
     B = machine.Pin(5,  machine.Pin.IN, machine.Pin.PULL_DOWN)
     C = machine.Pin(4,  machine.Pin.IN, machine.Pin.PULL_DOWN)
     D = machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
-    raw_id = (A.value() << 3) | (B.value() << 2) | (C.value() << 1) | D.value()
+    raw_id = (
+        (B.value() << 3) |
+        (A.value() << 2) |
+        (D.value() << 1) |
+        C.value()
+    )
     device_id = raw_id ^ 0x0F
 else:
     # Legacy ID: (GPIO4<<0)|(GPIO16<<1)|(GPIO17<<2)|(GPIO5<<3)
