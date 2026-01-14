@@ -1,23 +1,27 @@
 # ------------------------------------------------------------
-# Unified ESP-NOW firmware for SENDER / RELAY / RECEIVER (PATCHED)
+# Unified ESP-NOW firmware for SENDER / RELAY / RECEIVER
 #
-# PATCH (Critical):
-#   ✅ Replace blocking esp.recv() usage with non-blocking esp.recv(0)
-#      so the receiver never “stalls” and stops printing R,1 / identity.
+# OPTION A: "supports_pong" detection by behavior:
+#   - A sender is treated as "new firmware" only after receiver
+#     observes a valid MSG_PONG from that sender at least once.
+#   - Before marking a sender offline, receiver will do a
+#     "capability probe ping" if it has a real MAC for that sender.
+#   - If probe responds -> supports_pong=True (new firmware)
+#   - If probe fails -> treat as legacy (longer timeout)
 #
-# KEEPING:
-#   • MKIV vs Legacy detection + correct role/id logic
-#   • MKIV-only RGB (WS2812/NeoPixel) support on GPIO27
+# FIXES INCLUDED:
+#   • Correct MKIV detection (GPIO19=1 AND GPIO18=0 AND GPIO14=0)
+#   • Legacy role decode restored (3-pin: 19,18,14)
+#   • MKIV role decode: GPIO18/GPIO14 (2-bit)
+#   • MKIV ID decode fixed: raw=(17<<3)|(5<<2)|(4<<1)|16; id=raw^0x0F
+#   • Legacy ID decode restored: raw=(4<<0)|(16<<1)|(17<<2)|(5<<3) (no XOR)
+#   • MKIV-only NeoPixel GPIO27 support (guarded)
 #   • Real-MAC discovery via identity broadcasts
-#   • Opportunistic unicast to known receiver MAC (less broadcast congestion)
+#   • Opportunistic unicast to known receiver MAC
 #   • Relay uses IRQ -> queue -> main loop
-#   • Receiver drains RX queue aggressively
-#   • Heartbeats use jitter
-#   • App-level PING/PONG verify
-#   • Receiver outputs CSV serial:
-#       R,1
-#       O,<sid>,<0|1>
-#       S,<sid>,<motion>,<ramp>,<seq>
+#   • Receiver drains RX aggressively
+#   • Heartbeat jitter to avoid bursts
+#   • Receiver CSV serial output: R,1 / O,sid,0|1 / S,sid,motion,ramp,seq
 # ------------------------------------------------------------
 
 import network
@@ -52,14 +56,6 @@ def _pad16(b: bytes) -> bytes:
 def _jitter_ms(max_ms=2000) -> int:
     return urandom.getrandbits(16) % max_ms
 
-def _safe_hex_mac(mac_bytes: bytes) -> str:
-    try:
-        return ubinascii.hexlify(mac_bytes, ":").decode()
-    except Exception:
-        try:
-            return ubinascii.hexlify(mac_bytes).decode()
-        except Exception:
-            return "??"
 
 # =========================================================
 # Wi-Fi / ESP-NOW init
@@ -73,7 +69,7 @@ try:
 except Exception:
     pass
 
-# NOTE: All devices must share the same channel for ESP-NOW.
+# IMPORTANT: all nodes must share channel
 sta.config(channel=6)
 
 ap = network.WLAN(network.AP_IF)
@@ -89,42 +85,17 @@ try:
 except Exception:
     pass
 
-# =========================================================
-# PATCH: Non-blocking ESP-NOW receive wrapper
-# =========================================================
-def esp_recv_nb():
-    """
-    Returns (peer_mac, msg_bytes) or (None, None) when no message.
-
-    On most ESP32 MicroPython builds:
-      esp.recv(timeout_ms)
-    exists and recv(0) is non-blocking.
-
-    If your port does not accept an argument, we fall back to esp.recv()
-    (which may block). But on ESP32 it is usually supported.
-    """
-    try:
-        return esp.recv(0)  # Non-blocking: timeout 0ms
-    except TypeError:
-        # Port does not accept a timeout argument
-        try:
-            return esp.recv()
-        except Exception:
-            return (None, None)
-    except Exception:
-        return (None, None)
-
 
 # =========================================================
-# MKIV detect + role decode
+# Pins / MKIV detect + role decode
 # =========================================================
-PIN19 = machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_DOWN)  # MKIV flag pin (only high)
+PIN19 = machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_DOWN)
 PIN18 = machine.Pin(18, machine.Pin.IN, machine.Pin.PULL_DOWN)
 PIN14 = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN)
-
 time.sleep_ms(50)
 
-mkiv_flag = (PIN19.value() == 1)
+# MKIV detect: ONLY GPIO19 is high while GPIO18=0 and GPIO14=0
+mkiv_flag = (PIN19.value() == 1 and PIN18.value() == 0 and PIN14.value() == 0)
 
 roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER", 3: "TELEMETRY"}
 
@@ -132,8 +103,8 @@ if mkiv_flag:
     # MKIV role uses GPIO18/GPIO14 (2-bit)
     role_value = (PIN18.value() << 1) | PIN14.value()
 else:
-    # Legacy role uses GPIO18/GPIO19 (2-bit)
-    role_value = (PIN18.value() << 1) | PIN19.value()
+    # LEGACY role uses 3 pins exactly like your stable firmware
+    role_value = (PIN19.value() << 2) | (PIN18.value() << 1) | PIN14.value()
 
 DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
 
@@ -143,25 +114,16 @@ DEVICE_TYPE = roles.get(role_value, "UNKNOWN")
 # =========================================================
 if mkiv_flag:
     # MKIV current hex logic:
-    # (NOTE: use your CURRENT working bit mapping)
-    # A=GPIO17, B=GPIO5, C=GPIO4, D=GPIO16, then XOR invert
-
+    # raw=(GPIO17<<3)|(GPIO5<<2)|(GPIO4<<1)|GPIO16; id=raw^0x0F
     A = machine.Pin(17, machine.Pin.IN, machine.Pin.PULL_DOWN)
     B = machine.Pin(5,  machine.Pin.IN, machine.Pin.PULL_DOWN)
     C = machine.Pin(4,  machine.Pin.IN, machine.Pin.PULL_DOWN)
     D = machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN)
 
-    # Keeping your currently used mapping (as provided)
-    raw_id = (
-        (B.value() << 3) |
-        (A.value() << 2) |
-        (D.value() << 1) |
-        C.value()
-    )
+    raw_id = (A.value() << 3) | (B.value() << 2) | (C.value() << 1) | D.value()
     device_id = raw_id ^ 0x0F
 else:
-    # Legacy:
-    # device_id = (GPIO4<<0)|(GPIO16<<1)|(GPIO17<<2)|(GPIO5<<3)
+    # Legacy ID: (GPIO4<<0)|(GPIO16<<1)|(GPIO17<<2)|(GPIO5<<3)
     P4  = machine.Pin(4,  machine.Pin.IN, machine.Pin.PULL_DOWN)
     P16 = machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN)
     P17 = machine.Pin(17, machine.Pin.IN, machine.Pin.PULL_DOWN)
@@ -184,12 +146,10 @@ mac_prefix = {
 virtual_mac = "{}:{:02X}:{:02X}".format(mac_prefix.get(DEVICE_TYPE, "AC:DB:FF"), device_id, device_id)
 real_mac = ubinascii.hexlify(sta.config("mac"), ":").decode()
 
-# The single receiver this network targets (your fixed receiver VMAC)
+# Your final receiver virtual MAC target (ID=1 -> ...:01:01)
 FINAL_VMAC = "AC:DB:02:01:01"
 
-print("\n[BOOT] MKIV={} Role={} ID={} RawID={} Virtual={} Real={}\n".format(
-    mkiv_flag, DEVICE_TYPE, device_id, raw_id, virtual_mac, real_mac
-))
+print(f"\n[BOOT] MKIV={mkiv_flag} Role={DEVICE_TYPE} ID={device_id} Virtual={virtual_mac} Real={real_mac}\n")
 
 
 # =========================================================
@@ -236,17 +196,16 @@ def led_service():
         _led_pulse_until = 0
         led_set(*_role_color())
 
-# steady color
 led_set(*_role_color())
 
 
 # =========================================================
 # Packet formats + msg types
 # =========================================================
-PACKET_FORMAT   = ">16sBBHHH"   # dest_vmac(16), sid(u8), type(u8), ramp(u16), motion(u16), seq(u16)
+PACKET_FORMAT   = ">16sBBHHH"
 PACKET_SIZE     = struct.calcsize(PACKET_FORMAT)
 
-IDENTITY_FORMAT = "16s6s"       # vmac(16), realmac(6)
+IDENTITY_FORMAT = "16s6s"
 IDENTITY_SIZE   = struct.calcsize(IDENTITY_FORMAT)
 
 MSG_DATA = 0xA1
@@ -266,7 +225,7 @@ def parse_identity_packet(msg: bytes):
 # SENDER
 # =========================================================
 def run_sender():
-    # NOTE: ensure these pins are correct for your sender wiring
+    # Your existing inputs
     RAMP_UP_PIN   = machine.Pin(33, machine.Pin.IN, machine.Pin.PULL_DOWN)
     RAMP_DOWN_PIN = machine.Pin(25, machine.Pin.IN, machine.Pin.PULL_DOWN)
     SIM_HOME_PIN  = machine.Pin(26, machine.Pin.IN, machine.Pin.PULL_DOWN)
@@ -282,21 +241,19 @@ def run_sender():
             return 2
         return 0
 
+    # NOTE: keep your mapping as-is since your UI colors are correct now
     def get_motion_state():
-        # Your existing semantics:
-        # 2 = In Operation, 1 = Standby
         return 1 if SIM_HOME_PIN.value() == 0 else 2
 
     receiver_rmac = None
     seq_counter = 0
-
     dest_receiver_field = _pad16(FINAL_VMAC.encode())
 
     IDENTITY_BASE_MS  = 30000
     HEARTBEAT_BASE_MS = 12000
 
-    next_identity  = _ticks_ms() + IDENTITY_BASE_MS + _jitter_ms(2500)
-    next_heartbeat = _ticks_ms() + HEARTBEAT_BASE_MS + _jitter_ms(1500)
+    next_identity  = _ticks_ms() + 1000 + _jitter_ms(800)
+    next_heartbeat = _ticks_ms() + 1500 + _jitter_ms(800)
 
     prev_ramp = None
     prev_mot  = None
@@ -355,7 +312,7 @@ def run_sender():
     def handle_incoming():
         nonlocal receiver_rmac
         while True:
-            peer, msg = esp_recv_nb()   # ✅ PATCH: non-blocking
+            peer, msg = esp.recv()
             if not msg:
                 break
 
@@ -385,30 +342,21 @@ def run_sender():
                 except Exception:
                     pass
 
-    # --- Optional enhancement: fast boot announce ---
-    time.sleep_ms(_jitter_ms(400))
+    # Fast boot announce: identity + immediate heartbeat
+    time.sleep_ms(_jitter_ms(250))
     broadcast_identity()
-
-    boot_deadline = _ticks_ms() + 600
-    while _ticks_diff(_ticks_ms(), boot_deadline) < 0:
-        handle_incoming()
-        led_service()
-        time.sleep_ms(10)
-
-    # Send HB + PONG immediately so receiver clears offline quickly
-    send_to_receiver(MSG_HB,   get_ramp_state(), get_motion_state())
-    send_to_receiver(MSG_PONG, get_ramp_state(), get_motion_state())
-    # ----------------------------------------------
+    send_to_receiver(MSG_HB, get_ramp_state(), get_motion_state())
+    send_to_receiver(MSG_DATA, get_ramp_state(), get_motion_state())
 
     while True:
         now = _ticks_ms()
-
         handle_incoming()
 
         if _ticks_diff(now, next_identity) >= 0:
             broadcast_identity()
-            next_identity = now + IDENTITY_BASE_MS + _jitter_ms(3500)
+            next_identity = now + IDENTITY_BASE_MS + _jitter_ms(2500)
 
+        # Heartbeat always, regardless of state changes
         if _ticks_diff(now, next_heartbeat) >= 0:
             send_to_receiver(MSG_HB, get_ramp_state(), get_motion_state())
             next_heartbeat = now + HEARTBEAT_BASE_MS + _jitter_ms(2000)
@@ -503,9 +451,8 @@ def run_relay():
             return False
 
     def on_data_recv(*_):
-        # ✅ PATCH: use non-blocking recv inside IRQ so it cannot hang
         while True:
-            peer, msg = esp_recv_nb()
+            peer, msg = esp.recv()
             if not msg:
                 break
             q_put(peer, msg)
@@ -540,7 +487,7 @@ def run_relay():
 
 
 # =========================================================
-# RECEIVER (serial CSV output + ping/pong verify)
+# RECEIVER (Option A: supports_pong by behavior + probe ping)
 # =========================================================
 def run_receiver():
     # Serial protocol:
@@ -551,14 +498,20 @@ def run_receiver():
     EMIT_RECEIVER_ALIVE = True
     RECEIVER_ALIVE_MS = 5000
 
-    HEARTBEAT_TIMEOUT_MS = 90000
-    PING_WAIT_MS         = 800
-    PING_RETRIES         = 2
+    # Legacy senders heartbeat every ~30s in your old stable code.
+    # Give them plenty of slack so they don't flap.
+    LEGACY_TIMEOUT_MS = 240000   # 4 minutes
 
-    IDENTITY_BASE_MS = 30000
+    # New firmware heartbeat every ~12s
+    NEWFW_TIMEOUT_MS  = 90000    # 90 seconds before we probe/offline
+
+    PING_WAIT_MS      = 800
+    PING_RETRIES      = 2
+
+    IDENTITY_BASE_MS  = 30000
 
     now = _ticks_ms()
-    next_identity = now + IDENTITY_BASE_MS + _jitter_ms(2500)
+    next_identity = now + 1000 + _jitter_ms(800)
     next_alive = now + RECEIVER_ALIVE_MS
 
     senders = {}           # sid -> record
@@ -600,10 +553,13 @@ def run_receiver():
         except Exception:
             pass
 
+    def consume_one():
+        peer, msg = esp.recv()
+        return peer, msg
+
     def try_consume_pong_for(target_sid: int):
-        # ✅ PATCH: non-blocking polling for pong
         while True:
-            peer, msg = esp_recv_nb()
+            peer, msg = consume_one()
             if not msg:
                 return (False, None, None, None)
 
@@ -618,13 +574,9 @@ def run_receiver():
                 pass
 
     # Boot identity broadcast
-    time.sleep_ms(_jitter_ms(400))
+    time.sleep_ms(_jitter_ms(250))
     broadcast_receiver_identity()
     led_set(*_role_color())
-
-    # (Optional) extra visible heartbeat at boot
-    if EMIT_RECEIVER_ALIVE:
-        print("R,1")
 
     while True:
         now = _ticks_ms()
@@ -635,16 +587,17 @@ def run_receiver():
 
         if _ticks_diff(now, next_identity) >= 0:
             broadcast_receiver_identity()
-            next_identity = now + IDENTITY_BASE_MS + _jitter_ms(3500)
+            next_identity = now + IDENTITY_BASE_MS + _jitter_ms(2500)
 
-        # Drain RX (✅ PATCH: non-blocking recv)
+        # Drain RX (aggressive)
         while True:
-            peer, msg = esp_recv_nb()
+            peer, msg = consume_one()
             if not msg:
                 break
 
             ln = len(msg)
 
+            # Identity => learn sender real MAC
             if ln == IDENTITY_SIZE:
                 try:
                     vmac, rmac = parse_identity_packet(msg)
@@ -659,10 +612,13 @@ def run_receiver():
                     pass
                 continue
 
+            # Data packet
             if ln == PACKET_SIZE:
                 try:
                     dest_field, sid, msg_type, ramp_state, motion_state, seq = struct.unpack(PACKET_FORMAT, msg)
                     dest_vmac = dest_field.decode().strip("\x00")
+
+                    # Must be addressed to this receiver VMAC
                     if dest_vmac != virtual_mac:
                         continue
 
@@ -674,18 +630,18 @@ def run_receiver():
                             "ramp": ramp_state,
                             "motion": motion_state,
                             "offline": False,
-                            "miss_seq": 0,
+                            "supports_pong": False,  # OPTION A default
                         }
                         senders[sid] = rec
                         emit_online(sid, 1)
                         emit_state(sid, motion_state, ramp_state, seq)
 
-                    gap = (seq - rec["last_seq"]) & 0xFFFF
-                    if gap > 1:
-                        rec["miss_seq"] += (gap - 1)
-                    rec["last_seq"] = seq
+                    # OPTION A: learn capability only by observing real PONG
+                    if msg_type == MSG_PONG and not rec["supports_pong"]:
+                        rec["supports_pong"] = True
 
                     rec["last_seen"] = now
+                    rec["last_seq"] = seq
 
                     if rec["offline"]:
                         rec["offline"] = False
@@ -704,45 +660,61 @@ def run_receiver():
                 except Exception:
                     pass
 
-        # Timeout verify (ping/pong)
+        # Timeout handling (Option A)
         for sid, rec in senders.items():
             if rec["offline"]:
                 continue
 
-            if _ticks_diff(now, rec["last_seen"]) > HEARTBEAT_TIMEOUT_MS:
-                rmac = sender_mac_by_id.get(sid)
-                if not rmac:
-                    rec["offline"] = True
-                    emit_online(sid, 0)
-                    led_pulse(25, 0, 0, 120)
-                    continue
+            # Choose timeout based on known capability
+            timeout_ms = NEWFW_TIMEOUT_MS if rec["supports_pong"] else LEGACY_TIMEOUT_MS
 
-                alive = False
-                for _ in range(PING_RETRIES):
-                    send_ping(sid, rmac)
-                    deadline = _ticks_ms() + PING_WAIT_MS
+            if _ticks_diff(now, rec["last_seen"]) <= timeout_ms:
+                continue
 
-                    while _ticks_diff(_ticks_ms(), deadline) < 0:
-                        ok, ramp, mot, seq = try_consume_pong_for(sid)
-                        if ok:
-                            rec["last_seen"] = _ticks_ms()
-                            if ramp is not None and mot is not None:
-                                changed = (ramp != rec["ramp"]) or (mot != rec["motion"])
-                                rec["ramp"] = ramp
-                                rec["motion"] = mot
-                                if changed:
-                                    emit_state(sid, mot, ramp, seq if seq is not None else rec["last_seq"])
-                            alive = True
-                            break
-                        time.sleep_ms(5)
+            # If we KNOW it supports pong => ping/pong verify before offline
+            rmac = sender_mac_by_id.get(sid)
 
-                    if alive:
+            # Capability probe path:
+            # - If we DON'T know it supports pong yet, but we DO know its real MAC,
+            #   do a ping probe before assuming legacy/offline.
+            # - If pong returns -> supports_pong=True and keep online.
+            do_probe = (rmac is not None)
+
+            if not do_probe:
+                rec["offline"] = True
+                emit_online(sid, 0)
+                led_pulse(25, 0, 0, 120)
+                continue
+
+            alive = False
+            for _ in range(PING_RETRIES):
+                send_ping(sid, rmac)
+                deadline = _ticks_ms() + PING_WAIT_MS
+
+                while _ticks_diff(_ticks_ms(), deadline) < 0:
+                    ok, ramp, mot, seq = try_consume_pong_for(sid)
+                    if ok:
+                        alive = True
+                        rec["supports_pong"] = True  # OPTION A: now we know
+                        rec["last_seen"] = _ticks_ms()
+                        if ramp is not None and mot is not None:
+                            changed = (ramp != rec["ramp"]) or (mot != rec["motion"])
+                            rec["ramp"] = ramp
+                            rec["motion"] = mot
+                            if changed:
+                                emit_state(sid, mot, ramp, seq if seq is not None else rec["last_seq"])
                         break
+                    time.sleep_ms(5)
 
-                if not alive:
-                    rec["offline"] = True
-                    emit_online(sid, 0)
-                    led_pulse(25, 0, 0, 120)
+                if alive:
+                    break
+
+            if not alive:
+                # If it was unknown capability, we keep it as legacy (supports_pong False)
+                # but we already exceeded legacy timeout too if we're here.
+                rec["offline"] = True
+                emit_online(sid, 0)
+                led_pulse(25, 0, 0, 120)
 
         led_service()
         time.sleep_ms(5)
