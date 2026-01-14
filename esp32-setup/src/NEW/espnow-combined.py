@@ -94,8 +94,7 @@ PIN18 = machine.Pin(18, machine.Pin.IN, machine.Pin.PULL_DOWN)
 PIN14 = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_DOWN)
 time.sleep_ms(50)
 
-# MKIV detect: ONLY GPIO19 is high while GPIO18=0 and GPIO14=0
-mkiv_flag = (PIN19.value() == 1 and PIN18.value() == 0 and PIN14.value() == 0)
+mkiv_flag = (PIN19.value() == 1)
 
 roles = {0: "SENDER", 1: "RELAY", 2: "RECEIVER", 3: "TELEMETRY"}
 
